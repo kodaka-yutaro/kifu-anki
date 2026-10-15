@@ -44,7 +44,6 @@ let path = [];         // 根から現在局面までのノード列
 let mode = "edit";     // edit | sente | gote | both
 let sel = null;        // { from:[f,r] } または { drop:'p' }、targets 付き
 let drill = null;      // { done:Set(葉), misses, waiting }
-let hint = null;
 let parentOf = new Map();
 let timer = null;
 let revealedNode = null;   // 暗記中にコメントをめくった局面
@@ -152,7 +151,6 @@ function renderBoard(pos) {
     if (S.sameSq(last, [f, r])) cell.classList.add("last");
     if (sel && sel.from && S.sameSq(sel.from, [f, r])) cell.classList.add("selected");
     if (targets.some(t => S.sameSq(t, [f, r]))) cell.classList.add("target");
-    if (hint && hint.from && S.sameSq(hint.from, [f, r])) cell.classList.add("hint");
     cell.onclick = () => onCell(f, r);
     el.appendChild(cell);
   }
@@ -174,7 +172,6 @@ function renderHands(pos) {
       b.className = "hand-piece";
       b.innerHTML = S.NAME[t] + (hand[t] > 1 ? `<small>${hand[t]}</small>` : "");
       if (sel && sel.drop === t && pos.turn === side) b.classList.add("selected");
-      if (hint && hint.drop === t && pos.turn === side) b.classList.add("hint");
       b.onclick = () => onHand(side, t);
       el.appendChild(b);
     }
@@ -292,7 +289,6 @@ function askPromote() {
 }
 
 function play(m, pos) {
-  hint = null;
   const node = cur();
   let child = node.children.find(c => S.moveEq(c.move, m));
   if (mode === "edit") {
@@ -329,10 +325,10 @@ function startDrill() {
 function restartLine() {
   clearTimeout(timer);
   path = [book.root];
-  sel = null; hint = null;
+  sel = null;
   drill.waiting = false;
   $("btnContinue").hidden = true;
-  $("btnHint").hidden = $("btnAnswer").hidden = false;
+  $("btnAnswer").hidden = false;
   setMsg(userTurn(position()) ? "次の一手を指してください。" : "");
   advance();
 }
@@ -343,7 +339,7 @@ function advance() {
   if (isLeaf(node)) {
     drill.done.add(node);
     render();
-    $("btnHint").hidden = $("btnAnswer").hidden = true;
+    $("btnAnswer").hidden = true;
     if (complete(book.root)) {
       setMsg(`ツリーをすべて覚えました🎉（ミス ${drill.misses}）`, "ok");
       $("btnContinue").textContent = "もう一度 ▶";
@@ -371,29 +367,24 @@ function advance() {
   }
 }
 
-function showHint(answer) {
+function showAnswer() {
   if (!drill || drill.waiting) return;
   const pos = position();
   if (!userTurn(pos) || isLeaf(cur())) return;
   const c = cur().children.find(n => !complete(n));
-  if (answer) {
-    drill.misses++;
-    const node = cur();
-    path.push(c);
-    sel = null; hint = null;
-    setMsg("答え：" + S.label(pos, c.move, prevToOf(node)), "ng");
-    return advance();
-  }
-  hint = c.move.from ? { from: c.move.from } : { drop: c.move.t };
-  setMsg(c.move.from ? "光っている駒を動かします。" : "光っている持ち駒を打ちます。");
-  render();
+  drill.misses++;
+  const node = cur();
+  path.push(c);
+  sel = null;
+  setMsg("答え：" + S.label(pos, c.move, prevToOf(node)), "ng");
+  advance();
 }
 
 // ---------- モード・定跡の切り替え ----------
 function setMode(m) {
   clearTimeout(timer);
   mode = m;
-  sel = null; hint = null;
+  sel = null;
   document.querySelectorAll(".modes button").forEach(b => b.classList.toggle("active", b.dataset.mode === m));
   $("editButtons").hidden = m !== "edit";
   $("drillButtons").hidden = m === "edit";
@@ -549,8 +540,7 @@ function init() {
     save();
     nav(path.slice(0, -1));
   };
-  $("btnHint").onclick = () => showHint(false);
-  $("btnAnswer").onclick = () => showHint(true);
+  $("btnAnswer").onclick = showAnswer;
   $("btnContinue").onclick = () => complete(book.root) ? startDrill() : restartLine();
   let saveTimer;
   $("commentCover").onclick = () => { revealedNode = cur(); render(); };
