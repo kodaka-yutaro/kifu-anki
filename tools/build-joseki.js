@@ -127,7 +127,7 @@ ${others(a)}
     body,
     jsonld: { "@context": "https://schema.org", "@type": "Article", headline: a.title, description: a.description,
       inLanguage: "ja", datePublished: "2026-10-15", dateModified: TODAY, url,
-      author: { "@type": "Person", name: "小高悠太郎" }, publisher: { "@type": "Organization", name: "棋譜暗記道場" } }
+      author: { "@type": "Person", name: "kodaking" }, publisher: { "@type": "Organization", name: "棋譜暗記道場" } }
   }));
 }
 
