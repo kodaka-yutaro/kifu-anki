@@ -560,5 +560,27 @@ function init() {
     else if (e.key === "Enter" && !$("btnContinue").hidden && mode !== "edit") $("btnContinue").click();
   });
   setMode("edit");
+  openLinkedKif();
+}
+
+// 定跡解説ページの「暗記する」ボタン（?kif=joseki/xxx.kif）から開いたとき
+async function openLinkedKif() {
+  const params = new URLSearchParams(location.search);
+  const file = params.get("kif");
+  if (!file || !/^joseki\/[\w-]+\.kif$/.test(file)) return;
+  history.replaceState(null, "", location.pathname);
+  try {
+    const text = decode(await (await fetch(file)).arrayBuffer());
+    const header = text.match(/^表題[：:](.+)$/m);
+    const title = header ? header[1].trim() : file;
+    const root = S.parseKIF(text);
+    const existing = books.find(b => b.title === title);
+    if (existing) mergeTree(existing.root, root);
+    else books.push({ title, root });
+    selectBook(existing || books[books.length - 1]);
+    setMsg("定跡を読み込みました。上の「暗記」から始められます。", "ok");
+  } catch (e) {
+    setMsg("定跡を読み込めませんでした。", "ng");
+  }
 }
 init();

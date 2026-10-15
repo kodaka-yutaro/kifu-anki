@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://kodaka-yutaro.github.io/kifu-anki/</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://kodaka-yutaro.github.io/kifu-anki/joseki/</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://kodaka-yutaro.github.io/kifu-anki/joseki/yagura.html</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://kodaka-yutaro.github.io/kifu-anki/joseki/kakugawari.html</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://kodaka-yutaro.github.io/kifu-anki/joseki/yokofudori.html</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://kodaka-yutaro.github.io/kifu-anki/joseki/aigakari.html</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://kodaka-yutaro.github.io/kifu-anki/joseki/shikenbisha.html</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://kodaka-yutaro.github.io/kifu-anki/joseki/gokigen-nakabisha.html</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://kodaka-yutaro.github.io/kifu-anki/joseki/sankenbisha.html</loc><lastmod>2026-10-15</lastmod></url>
+  <url><loc>https://kodaka-yutaro.github.io/kifu-anki/joseki/mino-gakoi.html</loc><lastmod>2026-10-15</lastmod></url>
   <url><loc>https://kodaka-yutaro.github.io/kifu-anki/about.html</loc><lastmod>2026-10-15</lastmod></url>
   <url><loc>https://kodaka-yutaro.github.io/kifu-anki/privacy.html</loc><lastmod>2026-10-15</lastmod></url>
 </urlset>

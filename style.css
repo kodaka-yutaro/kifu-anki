@@ -127,3 +127,33 @@ html[data-pieces="kokuryu"] .hand-piece { background:#222; color:#f5efe4; border
 .intro { max-width:928px; margin:8px auto 0; padding:0 16px; color:var(--muted); font-size:.85rem; line-height:1.7; }
 .intro h2 { font-size:.95rem; margin:0 0 4px; color:var(--text); }
 .intro p { margin:0; }
+
+/* ---- 定跡解説ページ ---- */
+.site-name { margin:0; font-size:1.4rem; font-weight:bold; }
+.site-name a { color:var(--accent); text-decoration:none; }
+.article { max-width:760px; line-height:1.8; }
+.article h1 { font-size:1.5rem; margin:12px 0 8px; }
+.article h2 { font-size:1.15rem; margin:28px 0 8px; padding-bottom:4px; border-bottom:2px solid var(--border); }
+.article h3 { font-size:1rem; margin:16px 0 4px; }
+.article a { color:var(--accent); }
+.crumbs { font-size:.8rem; color:var(--muted); margin-top:8px; }
+.lead { font-size:1rem; }
+.cta { margin:16px 0; display:flex; gap:8px; flex-wrap:wrap; }
+.button { display:inline-block; padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:#fff; text-decoration:none; }
+.article a.button.primary { color:#fff; background:var(--accent); border-color:var(--accent); }
+.moves { list-style:none; padding:0; margin:0; }
+.moves li { padding:4px 0; border-bottom:1px dashed #eadfcd; }
+.mv { font-weight:bold; display:inline-block; min-width:9em; }
+.mv-note { color:#5a4a3a; font-size:.92rem; }
+.static-board { margin:8px 0; max-width:360px; }
+.static-board .board { aspect-ratio:9/9.8; }
+.static-board .cell { cursor:default; font-size:clamp(13px,4.2vw,20px); }
+.static-hand { margin:4px 0; font-size:.85rem; color:var(--muted); }
+.article-list { list-style:none; padding:0; }
+.article-list li { margin:10px 0; }
+.article-list a { display:block; padding:12px 14px; background:#fff; border:1px solid var(--border); border-radius:10px; text-decoration:none; color:var(--text); }
+.article-list a:hover { border-color:var(--accent); }
+.article-list b { display:block; color:var(--accent); }
+.article-list span { font-size:.85rem; color:var(--muted); }
+.related ul { padding-left:1.2em; }
+.intro a { color:var(--accent); }
