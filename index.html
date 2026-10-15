@@ -74,6 +74,7 @@
         <button id="btnAnswer">答え</button>
         <button id="btnContinue" class="primary" hidden>次の変化へ ▶</button>
       </div>
+      <button id="commentCover" class="comment-cover" hidden>💬 コメントを見る</button>
       <textarea id="comment" class="comment" placeholder="この局面へのコメント"></textarea>
     </section>
   </div>
@@ -108,6 +109,7 @@
     <li><b>▲先手</b>：あなたが先手を指し、後手は自動で指します（後手の手が分かれる所は順番に出題）。</li>
     <li><b>△後手</b>：盤を反転し、あなたが後手を指します。</li>
     <li><b>両方</b>：先手・後手の手をすべてあなたが指します。</li>
+    <li>設定（⚙）で、暗記中のコメントを隠してタップでめくる形にもできます。</li>
     <li>ツリーのすべての変化を指し終えるまで続きます。覚えた変化はツリーに色が付きます。</li>
   </ul>
   <h3>KIFファイル</h3>
@@ -137,6 +139,7 @@
   </div>
   <h3>表示</h3>
   <label class="check"><input type="checkbox" id="optArrows"> 最初・最後へ飛ぶボタン（⏮ ⏭）を表示</label>
+  <label class="check"><input type="checkbox" id="optHideComments"> 暗記中はコメントを隠し、タップでめくって見る</label>
   <form method="dialog"><button class="primary">閉じる</button></form>
 </dialog>
 

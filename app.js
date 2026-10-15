@@ -47,6 +47,7 @@ let drill = null;      // { done:Set(葉), misses, waiting }
 let hint = null;
 let parentOf = new Map();
 let timer = null;
+let revealedNode = null;   // 暗記中にコメントをめくった局面
 
 const cur = () => path[path.length - 1];
 function position() {
@@ -119,6 +120,9 @@ function render() {
   c.readOnly = mode !== "edit";
   c.placeholder = mode === "edit" ? "この局面へのコメント" : "";
   c.classList.toggle("empty", mode !== "edit" && !c.value);
+  const covered = mode !== "edit" && settings.hideComments && !!c.value && revealedNode !== cur();
+  c.hidden = covered;
+  $("commentCover").hidden = !covered;
   if (mode === "edit") {
     $("progress").textContent = `${path.length - 1}手目` + (cur().children.length > 1 ? `　（分岐 ${cur().children.length}）` : "");
   } else if (drill) {
@@ -484,7 +488,7 @@ async function importFiles(files) {
 
 // ---------- 設定 ----------
 const SETTINGS_KEY = "kifu-anki-settings-v1";
-let settings = { board: "kaya", pieces: "plain", arrows: true };
+let settings = { board: "kaya", pieces: "plain", arrows: true, hideComments: false };
 function applySettings() {
   const html = document.documentElement;
   html.dataset.board = settings.board;
@@ -497,10 +501,13 @@ function initSettings() {
   const d = $("settingsDialog");
   d.querySelectorAll(`input[name=board][value=${settings.board}], input[name=pieces][value=${settings.pieces}]`).forEach(i => i.checked = true);
   $("optArrows").checked = settings.arrows;
+  $("optHideComments").checked = settings.hideComments;
   d.addEventListener("change", () => {
     settings.board = d.querySelector("input[name=board]:checked").value;
     settings.pieces = d.querySelector("input[name=pieces]:checked").value;
     settings.arrows = $("optArrows").checked;
+    settings.hideComments = $("optHideComments").checked;
+    if (book) render();
     applySettings();
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* 保存できなくても反映はする */ }
   });
@@ -546,6 +553,7 @@ function init() {
   $("btnAnswer").onclick = () => showHint(true);
   $("btnContinue").onclick = () => complete(book.root) ? startDrill() : restartLine();
   let saveTimer;
+  $("commentCover").onclick = () => { revealedNode = cur(); render(); };
   $("comment").oninput = e => {
     if (mode !== "edit") return;
     cur().comment = e.target.value;
