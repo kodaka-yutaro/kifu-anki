@@ -482,8 +482,34 @@ async function importFiles(files) {
   setMsg("読み込みました。", "ok");
 }
 
+// ---------- 設定 ----------
+const SETTINGS_KEY = "kifu-anki-settings-v1";
+let settings = { board: "kaya", pieces: "plain", arrows: true };
+function applySettings() {
+  const html = document.documentElement;
+  html.dataset.board = settings.board;
+  html.dataset.pieces = settings.pieces;
+  html.classList.toggle("no-arrows", !settings.arrows);
+}
+function initSettings() {
+  try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch (e) { /* 既定値のまま */ }
+  applySettings();
+  const d = $("settingsDialog");
+  d.querySelectorAll(`input[name=board][value=${settings.board}], input[name=pieces][value=${settings.pieces}]`).forEach(i => i.checked = true);
+  $("optArrows").checked = settings.arrows;
+  d.addEventListener("change", () => {
+    settings.board = d.querySelector("input[name=board]:checked").value;
+    settings.pieces = d.querySelector("input[name=pieces]:checked").value;
+    settings.arrows = $("optArrows").checked;
+    applySettings();
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* 保存できなくても反映はする */ }
+  });
+  $("btnSettings").onclick = () => d.showModal();
+}
+
 // ---------- 初期化 ----------
 function init() {
+  initSettings();
   load();
   refreshBooks();
   $("bookSelect").onchange = e => selectBook(books[e.target.value]);

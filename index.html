@@ -10,7 +10,10 @@
 <body>
 <header class="site-header">
   <h1>棋譜暗記道場</h1>
-  <button id="btnHelp" class="icon help" title="使い方" aria-label="使い方">?</button>
+  <div class="header-tools">
+    <button id="btnSettings" class="round" title="設定" aria-label="設定">⚙</button>
+    <button id="btnHelp" class="round" title="使い方" aria-label="使い方">?</button>
+  </div>
 </header>
 
 <div class="ad-slot" aria-label="広告">広告枠（準備中）</div>
@@ -49,10 +52,10 @@
       <p id="message" class="message"></p>
       <p id="progress" class="progress"></p>
       <div class="buttons" id="editButtons">
-        <button id="btnFirst" title="最初へ">⏮</button>
-        <button id="btnPrev" title="1手戻る（←）">◀</button>
-        <button id="btnNext" title="1手進む（→）">▶</button>
-        <button id="btnLast" title="最後へ">⏭</button>
+        <button id="btnFirst" class="arrow" title="最初へ">⏮</button>
+        <button id="btnPrev" class="arrow" title="1手戻る（←）">◀</button>
+        <button id="btnNext" class="arrow" title="1手進む（→）">▶</button>
+        <button id="btnLast" class="arrow" title="最後へ">⏭</button>
         <button id="btnCut" title="この手以降を削除">この手を削除</button>
       </div>
       <div class="buttons" id="drillButtons" hidden>
@@ -97,6 +100,27 @@
     <li><b>書出</b>：定跡を変化・コメントごとKIFファイルとして保存します。</li>
   </ul>
   <p class="note">データはこのブラウザ内に保存されます。別の端末へ移すときはKIFで書き出してください。</p>
+  <form method="dialog"><button class="primary">閉じる</button></form>
+</dialog>
+
+<dialog id="settingsDialog" class="dialog">
+  <h2>設定</h2>
+  <h3>盤</h3>
+  <div class="choices" id="boardChoices">
+    <label><input type="radio" name="board" value="kaya"><span class="swatch board-kaya"></span>榧（かや）</label>
+    <label><input type="radio" name="board" value="light"><span class="swatch board-light"></span>白木</label>
+    <label><input type="radio" name="board" value="green"><span class="swatch board-green"></span>緑</label>
+    <label><input type="radio" name="board" value="dark"><span class="swatch board-dark"></span>夜</label>
+  </div>
+  <h3>駒</h3>
+  <div class="choices" id="pieceChoices">
+    <label><input type="radio" name="pieces" value="plain"><span class="sample pieces-plain"><span>飛</span></span>文字</label>
+    <label><input type="radio" name="pieces" value="mincho"><span class="sample pieces-mincho"><span>飛</span></span>明朝</label>
+    <label><input type="radio" name="pieces" value="koma"><span class="sample pieces-koma"><span>飛</span></span>駒形</label>
+    <label><input type="radio" name="pieces" value="kokuryu"><span class="sample pieces-kokuryu"><span>飛</span></span>駒形・黒</label>
+  </div>
+  <h3>表示</h3>
+  <label class="check"><input type="checkbox" id="optArrows"> 手順を進める矢印ボタン（⏮ ◀ ▶ ⏭）を表示</label>
   <form method="dialog"><button class="primary">閉じる</button></form>
 </dialog>
 

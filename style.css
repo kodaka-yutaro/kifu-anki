@@ -9,7 +9,9 @@ button.icon { min-width:36px; padding:6px 8px; }
 
 .site-header { display:flex; align-items:center; justify-content:center; gap:10px; padding:14px 16px 4px; position:relative; max-width:960px; margin:0 auto; }
 .site-header h1 { margin:0; color:var(--accent); font-size:1.4rem; }
-.help { position:absolute; right:16px; width:34px; height:34px; border-radius:50%; font-weight:bold; padding:0; }
+.header-tools { position:absolute; right:16px; display:flex; gap:6px; }
+.round { width:34px; height:34px; border-radius:50%; font-weight:bold; padding:0; }
+html.no-arrows .arrow { display:none; }
 
 main { max-width:960px; margin:0 auto; padding:0 16px; }
 .bar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:10px 0; }
@@ -84,3 +86,40 @@ body.drilling .tree .node { cursor:default; }
 /* プライバシーポリシー等のページ */
 .panel { background:var(--panel); border-radius:12px; padding:16px; margin:16px 0; box-shadow:0 1px 4px rgba(0,0,0,.08); }
 @media (max-width:600px) { .bar select { flex-basis:100%; } .bar button { flex:1; } }
+
+/* ---- 盤のデザイン ---- */
+html[data-board="light"] { --board:#f6e9cf; --line:#9a7b4f; }
+html[data-board="green"] { --board:#cfe3c4; --line:#4f7a45; }
+html[data-board="dark"] { --board:#3b3631; --line:#1d1a17; }
+html[data-board="dark"] .cell { color:#f3ece1; border-color:rgba(0,0,0,.6); }
+html[data-board="dark"] .cell.last { background:#5a4c3c; }
+html[data-board="dark"] .cell.selected { background:#7a6530; }
+html[data-board="dark"] .cell.promoted { color:#ff8a80; }
+html[data-board="kaya"] .board { background:linear-gradient(135deg,#ebc882,#e2b96e 60%,#e9c47c); }
+
+/* ---- 駒のデザイン ---- */
+html[data-pieces="mincho"] .cell, html[data-pieces="mincho"] .hand-piece, .pieces-mincho { font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; font-weight:bold; }
+html[data-pieces="koma"] .cell span, html[data-pieces="kokuryu"] .cell span, .pieces-koma span, .pieces-kokuryu span {
+  width:84%; height:90%; display:inline-flex; align-items:center; justify-content:center; padding-top:12%;
+  clip-path:polygon(50% 0,86% 16%,100% 100%,0 100%,14% 16%); font-size:.9em;
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; font-weight:bold; }
+html[data-pieces="koma"] .cell span, .pieces-koma span { background:linear-gradient(#fbe7b5,#f0cf8a); color:#2b2520; }
+html[data-pieces="kokuryu"] .cell span, .pieces-kokuryu span { background:linear-gradient(#3a3a3a,#141414); color:#f5efe4; }
+html[data-pieces="koma"] .cell.promoted span, .pieces-koma.promoted span { color:#b71c1c; }
+html[data-pieces="kokuryu"] .cell.promoted span { color:#ff8a80; }
+html[data-pieces="koma"] .hand-piece, html[data-pieces="kokuryu"] .hand-piece { font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; font-weight:bold; }
+html[data-pieces="kokuryu"] .hand-piece { background:#222; color:#f5efe4; border-color:#000; }
+
+/* ---- 設定ダイアログ ---- */
+.choices { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.choices label { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px; border:1px solid var(--border); border-radius:10px; cursor:pointer; font-size:.85rem; }
+.choices label:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent) inset; }
+.choices input { position:absolute; opacity:0; pointer-events:none; }
+.swatch { width:44px; height:44px; border-radius:4px; border:2px solid; background-image:linear-gradient(currentColor 1px,transparent 1px),linear-gradient(90deg,currentColor 1px,transparent 1px); background-size:11px 11px; }
+.board-kaya { background-color:#e8c37e; color:#6b4a1f; border-color:#6b4a1f; }
+.board-light { background-color:#f6e9cf; color:#9a7b4f; border-color:#9a7b4f; }
+.board-green { background-color:#cfe3c4; color:#4f7a45; border-color:#4f7a45; }
+.board-dark { background-color:#3b3631; color:#1d1a17; border-color:#1d1a17; }
+.sample { width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-size:26px; background:#e8c37e; border-radius:4px; }
+.sample > span { line-height:1; }
+.check { display:flex; gap:8px; align-items:center; cursor:pointer; }
