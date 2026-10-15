@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>棋譜暗記道場 | 将棋の定跡・棋譜を覚えるサイト</title>
+<meta name="description" content="将棋の定跡や棋譜を、盤上で次の一手を指しながら暗記できる無料の練習サイトです。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header">
+  <h1>棋譜暗記道場</h1>
+  <p class="tagline">次の一手を盤で指して、定跡と棋譜を覚えよう</p>
+</header>
+
+<div class="ad-slot" aria-label="広告">広告枠（準備中）</div>
+
+<main>
+  <section class="panel">
+    <div class="controls">
+      <label>棋譜：
+        <select id="kifuSelect"></select>
+      </label>
+      <div class="modes">
+        <button id="modeQuiz" class="active">暗記モード</button>
+        <button id="modeReplay">再生モード</button>
+      </div>
+    </div>
+
+    <div class="board-wrap">
+      <div class="hand" id="handGote"></div>
+      <div id="board" class="board"></div>
+      <div class="hand" id="handSente"></div>
+    </div>
+
+    <p id="message" class="message">駒をクリックし、移動先をクリックして次の一手を指してください。</p>
+    <p class="progress" id="progress"></p>
+
+    <div class="buttons">
+      <button id="btnPrev">◀ 戻る</button>
+      <button id="btnHint">ヒント</button>
+      <button id="btnAnswer">答えを見る</button>
+      <button id="btnNext">進む ▶</button>
+      <button id="btnReset">最初から</button>
+    </div>
+
+    <ol id="moveList" class="move-list"></ol>
+  </section>
+
+  <section class="panel about">
+    <h2>使い方</h2>
+    <ul>
+      <li><b>暗記モード</b>：先手・後手どちらの手も、盤上の駒をクリックして移動先をクリックすると、正解かどうかが表示されます。</li>
+      <li><b>再生モード</b>：「進む」「戻る」で棋譜を順番に確認できます。</li>
+      <li>まずは再生モードで流れを見て、暗記モードで手を再現してみましょう。</li>
+    </ul>
+  </section>
+</main>
+
+<div class="ad-slot" aria-label="広告">広告枠（準備中）</div>
+
+<footer class="site-footer">
+  <a href="privacy.html">プライバシーポリシー</a> ・ © 2026 棋譜暗記道場
+</footer>
+
+<script src="kifu.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
