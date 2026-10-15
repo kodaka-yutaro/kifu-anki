@@ -3,57 +3,69 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>棋譜暗記道場 | 将棋の定跡・棋譜を覚えるサイト</title>
-<meta name="description" content="将棋の定跡や棋譜を、盤上で次の一手を指しながら暗記できる無料の練習サイトです。">
+<title>棋譜暗記道場 | 将棋の定跡をツリーで覚える</title>
+<meta name="description" content="将棋の定跡をツリーで管理し、先手・後手・両方の立場で盤上で指して暗記できる無料サイト。KIFファイルの読み込み・書き出し、コメントに対応。">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="site-header">
   <h1>棋譜暗記道場</h1>
-  <p class="tagline">次の一手を盤で指して、定跡と棋譜を覚えよう</p>
+  <button id="btnHelp" class="icon help" title="使い方" aria-label="使い方">?</button>
 </header>
 
 <div class="ad-slot" aria-label="広告">広告枠（準備中）</div>
 
 <main>
-  <section class="panel">
-    <div class="controls">
-      <label>棋譜：
-        <select id="kifuSelect"></select>
-      </label>
-      <div class="modes">
-        <button id="modeQuiz" class="active">暗記モード</button>
-        <button id="modeReplay">再生モード</button>
+  <div class="bar">
+    <select id="bookSelect" aria-label="定跡"></select>
+    <button id="btnNew" class="icon" title="新しい定跡">＋</button>
+    <button id="btnImport" title="KIFファイルを読み込む">読込</button>
+    <button id="btnExport" title="KIFファイルとして保存">書出</button>
+    <button id="btnRename" class="icon" title="名前を変更">✎</button>
+    <button id="btnDelete" class="icon" title="この定跡を削除">🗑</button>
+    <input type="file" id="fileInput" accept=".kif,.kifu,.txt" multiple hidden>
+  </div>
+
+  <nav class="modes" aria-label="モード">
+    <button data-mode="edit" class="active">編集</button>
+    <span class="modes-label">暗記</span>
+    <button data-mode="sente">▲先手</button>
+    <button data-mode="gote">△後手</button>
+    <button data-mode="both">両方</button>
+  </nav>
+
+  <div class="layout">
+    <section class="board-area">
+      <div class="hand" id="handTop"></div>
+      <div class="board-frame">
+        <div class="files" id="files"></div>
+        <div id="board" class="board"></div>
+        <div class="ranks" id="ranks"></div>
       </div>
-    </div>
+      <div class="hand" id="handBottom"></div>
+    </section>
 
-    <div class="board-wrap">
-      <div class="hand" id="handGote"></div>
-      <div id="board" class="board"></div>
-      <div class="hand" id="handSente"></div>
-    </div>
+    <section class="side">
+      <p id="message" class="message"></p>
+      <p id="progress" class="progress"></p>
+      <div class="buttons" id="editButtons">
+        <button id="btnFirst" title="最初へ">⏮</button>
+        <button id="btnPrev" title="1手戻る（←）">◀</button>
+        <button id="btnNext" title="1手進む（→）">▶</button>
+        <button id="btnLast" title="最後へ">⏭</button>
+        <button id="btnCut" title="この手以降を削除">この手を削除</button>
+      </div>
+      <div class="buttons" id="drillButtons" hidden>
+        <button id="btnHint">ヒント</button>
+        <button id="btnAnswer">答え</button>
+        <button id="btnContinue" class="primary" hidden>次の変化へ ▶</button>
+      </div>
+      <textarea id="comment" class="comment" placeholder="この局面へのコメント"></textarea>
+    </section>
+  </div>
 
-    <p id="message" class="message">駒をクリックし、移動先をクリックして次の一手を指してください。</p>
-    <p class="progress" id="progress"></p>
-
-    <div class="buttons">
-      <button id="btnPrev">◀ 戻る</button>
-      <button id="btnHint">ヒント</button>
-      <button id="btnAnswer">答えを見る</button>
-      <button id="btnNext">進む ▶</button>
-      <button id="btnReset">最初から</button>
-    </div>
-
-    <ol id="moveList" class="move-list"></ol>
-  </section>
-
-  <section class="panel about">
-    <h2>使い方</h2>
-    <ul>
-      <li><b>暗記モード</b>：先手・後手どちらの手も、盤上の駒をクリックして移動先をクリックすると、正解かどうかが表示されます。</li>
-      <li><b>再生モード</b>：「進む」「戻る」で棋譜を順番に確認できます。</li>
-      <li>まずは再生モードで流れを見て、暗記モードで手を再現してみましょう。</li>
-    </ul>
+  <section class="tree-area">
+    <div id="tree" class="tree"></div>
   </section>
 </main>
 
@@ -63,7 +75,48 @@
   <a href="privacy.html">プライバシーポリシー</a> ・ © 2026 棋譜暗記道場
 </footer>
 
-<script src="kifu.js"></script>
+<dialog id="helpDialog" class="dialog">
+  <h2>使い方</h2>
+  <h3>定跡をつくる（編集）</h3>
+  <ul>
+    <li>駒をタップして移動先をタップすると手が登録されます。持ち駒は盤の上下の駒をタップして打てます。</li>
+    <li>途中の局面に戻って別の手を指すと、変化（分岐）として追加されます。</li>
+    <li>下の定跡ツリーの手をタップすると、その局面に移動します。</li>
+    <li>コメント欄に書いた内容は、その局面に保存されます。</li>
+  </ul>
+  <h3>暗記する</h3>
+  <ul>
+    <li><b>▲先手</b>：あなたが先手を指し、後手は自動で指します（後手の手が分かれる所は順番に出題）。</li>
+    <li><b>△後手</b>：盤を反転し、あなたが後手を指します。</li>
+    <li><b>両方</b>：先手・後手の手をすべてあなたが指します。</li>
+    <li>ツリーのすべての変化を指し終えるまで続きます。覚えた変化はツリーに色が付きます。</li>
+  </ul>
+  <h3>KIFファイル</h3>
+  <ul>
+    <li><b>読込</b>：KIF/KIFUファイル（変化・コメント付き可）を定跡として取り込みます。今の定跡に合流させることもできます。</li>
+    <li><b>書出</b>：定跡を変化・コメントごとKIFファイルとして保存します。</li>
+  </ul>
+  <p class="note">データはこのブラウザ内に保存されます。別の端末へ移すときはKIFで書き出してください。</p>
+  <form method="dialog"><button class="primary">閉じる</button></form>
+</dialog>
+
+<dialog id="promoteDialog" class="dialog small">
+  <p>成りますか？</p>
+  <form method="dialog" class="row">
+    <button value="yes" class="primary">成る</button>
+    <button value="no">成らない</button>
+  </form>
+</dialog>
+
+<dialog id="importDialog" class="dialog small">
+  <p id="importText"></p>
+  <form method="dialog" class="row">
+    <button value="merge" class="primary">今の定跡に合流</button>
+    <button value="new">新しい定跡にする</button>
+  </form>
+</dialog>
+
+<script src="shogi.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
