@@ -33,6 +33,8 @@ main { max-width:960px; margin:0 auto; padding:0 16px; }
 .cell.promoted { color:#b71c1c; }
 .cell.last { background:#f1d49a; }
 .cell.selected { background:var(--hl); }
+.cell.hint, .hand-piece.hint { outline:3px solid #1976d2; outline-offset:-3px; animation:pulse 1s infinite; }
+@keyframes pulse { 50% { outline-color:transparent; } }
 .cell.target { box-shadow:inset 0 0 0 100px var(--target); }
 
 .hand { display:flex; align-items:center; gap:4px; min-height:38px; flex-wrap:wrap; }

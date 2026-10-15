@@ -46,6 +46,7 @@ let sel = null;        // { from:[f,r] } または { drop:'p' }、targets 付き
 let drill = null;      // { done:Set(葉), misses, waiting }
 let parentOf = new Map();
 let timer = null;
+let hint = null;          // 答えボタンで光らせる駒 { from } または { drop }
 let revealedNode = null;   // 暗記中にコメントをめくった局面
 
 const cur = () => path[path.length - 1];
@@ -109,13 +110,29 @@ function canInput(pos) {
   return drill && !drill.waiting && !isLeaf(cur()) && userTurn(pos);
 }
 
+// 暗記中は、自分の直前の手から現在までのコメントをまとめて見せる（相手の自動指しで流れないように）
+function drillComment() {
+  const userMoveAt = i => mode === "both" || (mode === "sente") === (i % 2 === 1);
+  let start = path.length - 1;
+  while (start > 0 && !userMoveAt(start)) start--;
+  let pos = S.initial();
+  const parts = [];
+  for (let i = 1; i < path.length; i++) {
+    if (i >= start && path[i].comment) parts.push({ label: S.label(pos, path[i].move, path[i - 1].move && path[i - 1].move.to), text: path[i].comment });
+    pos = S.apply(pos, path[i].move);
+  }
+  if (path.length === 1 && path[0].comment) return path[0].comment;
+  if (parts.length === 1 && path[path.length - 1].comment) return parts[0].text;
+  return parts.map(p => `${p.label}：${p.text}`).join("\n");
+}
+
 function render() {
   const pos = position();
   renderBoard(pos);
   renderHands(pos);
   renderTree();
   const c = $("comment");
-  c.value = cur().comment || "";
+  c.value = mode === "edit" ? cur().comment || "" : drillComment();
   c.readOnly = mode !== "edit";
   c.placeholder = mode === "edit" ? "この局面へのコメント" : "";
   c.classList.toggle("empty", mode !== "edit" && !c.value);
@@ -150,6 +167,7 @@ function renderBoard(pos) {
     }
     if (S.sameSq(last, [f, r])) cell.classList.add("last");
     if (sel && sel.from && S.sameSq(sel.from, [f, r])) cell.classList.add("selected");
+    if (hint && hint.from && S.sameSq(hint.from, [f, r])) cell.classList.add("hint");
     if (targets.some(t => S.sameSq(t, [f, r]))) cell.classList.add("target");
     cell.onclick = () => onCell(f, r);
     el.appendChild(cell);
@@ -172,6 +190,7 @@ function renderHands(pos) {
       b.className = "hand-piece";
       b.innerHTML = S.NAME[t] + (hand[t] > 1 ? `<small>${hand[t]}</small>` : "");
       if (sel && sel.drop === t && pos.turn === side) b.classList.add("selected");
+      if (hint && hint.drop === t && pos.turn === side) b.classList.add("hint");
       b.onclick = () => onHand(side, t);
       el.appendChild(b);
     }
@@ -289,6 +308,7 @@ function askPromote() {
 }
 
 function play(m, pos) {
+  hint = null;
   const node = cur();
   let child = node.children.find(c => S.moveEq(c.move, m));
   if (mode === "edit") {
@@ -325,7 +345,7 @@ function startDrill() {
 function restartLine() {
   clearTimeout(timer);
   path = [book.root];
-  sel = null;
+  sel = null; hint = null;
   drill.waiting = false;
   $("btnContinue").hidden = true;
   $("btnAnswer").hidden = false;
@@ -372,19 +392,16 @@ function showAnswer() {
   const pos = position();
   if (!userTurn(pos) || isLeaf(cur())) return;
   const c = cur().children.find(n => !complete(n));
-  drill.misses++;
-  const node = cur();
-  path.push(c);
-  sel = null;
-  setMsg("答え：" + S.label(pos, c.move, prevToOf(node)), "ng");
-  advance();
+  hint = c.move.from ? { from: c.move.from } : { drop: c.move.t };
+  setMsg(c.move.from ? "光っている駒を動かします。" : "光っている持ち駒を打ちます。");
+  render();
 }
 
 // ---------- モード・定跡の切り替え ----------
 function setMode(m) {
   clearTimeout(timer);
   mode = m;
-  sel = null;
+  sel = null; hint = null;
   document.querySelectorAll(".modes button").forEach(b => b.classList.toggle("active", b.dataset.mode === m));
   $("editButtons").hidden = m !== "edit";
   $("drillButtons").hidden = m === "edit";
