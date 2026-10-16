@@ -7,7 +7,7 @@ const ARTICLES = require("./joseki-data.js");
 
 const ROOT = path.join(__dirname, "..");
 const OUT = path.join(ROOT, "joseki");
-const SITE = "https://kodaka-yutaro.github.io/kifu-anki/";
+const SITE = "https://kodking-tools.com/";
 const TODAY = new Date().toISOString().slice(0, 10);
 const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
