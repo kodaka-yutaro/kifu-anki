@@ -143,7 +143,10 @@ ${ARTICLES.map(a => `<li><a href="${a.slug}.html"><b>${esc(a.title)}</b><span>${
 </ul>`
 }));
 
-const urls = ["", "joseki/", ...ARTICLES.map(a => `joseki/${a.slug}.html`), "oboekata.html", "about.html", "privacy.html"];
+// 棋譜一覧ページ（library.html）が読む定跡の一覧
+fs.writeFileSync(path.join(OUT, "list.json"), JSON.stringify(ARTICLES.map(a => ({ slug: a.slug, title: a.title, short: a.short })), null, 1) + "\n");
+
+const urls = ["", "joseki/", ...ARTICLES.map(a => `joseki/${a.slug}.html`), "library.html", "oboekata.html", "about.html", "privacy.html"];
 fs.writeFileSync(path.join(ROOT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map(u => `  <url><loc>${SITE}${u}</loc><lastmod>${TODAY}</lastmod></url>`).join("\n")}

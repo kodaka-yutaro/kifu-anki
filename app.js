@@ -576,6 +576,8 @@ function init() {
   });
   setMode("edit");
   openLinkedKif();
+  // 保存した棋譜をブラウザが勝手に消さないよう、永続化をお願いしておく
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
 }
 
 // 定跡解説ページの「暗記する」ボタン（?kif=joseki/xxx.kif）から開いたとき

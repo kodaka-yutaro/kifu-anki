@@ -164,3 +164,15 @@ html[data-pieces="kokuryu"] .hand-piece { background:#222; color:#f5efe4; border
 .intro h2:not(:first-child) { margin-top:14px; }
 .intro ul { margin:4px 0; padding-left:1.2em; }
 .intro li { margin:2px 0; }
+a.button { display:inline-block; padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:#fff; color:var(--text); text-decoration:none; }
+a.button:hover { border-color:var(--accent); }
+.book-list { list-style:none; padding:0; margin:8px 0; }
+.book-list li { display:flex; gap:6px; align-items:stretch; margin:8px 0; }
+.book-list li > a { flex:1; display:block; padding:10px 14px; background:#fff; border:1px solid var(--border); border-radius:10px; text-decoration:none; color:var(--text); }
+.book-list li > a:hover { border-color:var(--accent); }
+.book-list b { display:block; color:var(--accent); }
+.book-list span { font-size:.85rem; color:var(--muted); }
+.book-list li.empty { display:block; color:var(--muted); font-size:.9rem; }
+.lib-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.library .note { color:var(--muted); font-size:.85rem; }
+.bar button, .bar a.button { white-space:nowrap; }

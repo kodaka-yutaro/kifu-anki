@@ -16,7 +16,7 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"棋譜暗記道場","alternateName":"棋譜暗記サイト","url":"https://kifu.kdking-tools.com/","applicationCategory":"GameApplication","operatingSystem":"Web","inLanguage":"ja","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"description":"将棋の棋譜や定跡をツリーで管理し、盤上で指して暗記できる無料の棋譜暗記サイト。KIFファイルの読み込み・書き出しに対応。"}
 </script>
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 <header class="site-header">
@@ -32,6 +32,7 @@
 <main>
   <div class="bar">
     <select id="bookSelect" aria-label="定跡"></select>
+    <a id="btnLibrary" class="button" href="library.html" title="棋譜の一覧から選ぶ">📂 一覧</a>
     <button id="btnNew" class="icon" title="新しい定跡">＋</button>
     <button id="btnImport" title="KIFファイルを読み込む">読込</button>
     <button id="btnExport" title="KIFファイルとして保存">書出</button>
@@ -99,7 +100,7 @@
 </section>
 
 <footer class="site-footer">
-  <a href="joseki/">定跡解説</a> ・ <a href="oboekata.html">棋譜の覚え方</a> ・ <a href="about.html">運営者情報・お問い合わせ</a> ・ <a href="privacy.html">プライバシーポリシー</a> ・ © 2026 棋譜暗記道場
+  <a href="library.html">棋譜を選ぶ</a> ・ <a href="joseki/">定跡解説</a> ・ <a href="oboekata.html">棋譜の覚え方</a> ・ <a href="about.html">運営者情報・お問い合わせ</a> ・ <a href="privacy.html">プライバシーポリシー</a> ・ © 2026 棋譜暗記道場
 </footer>
 
 <dialog id="helpDialog" class="dialog">
@@ -123,6 +124,7 @@
   <ul>
     <li><b>読込</b>：KIF/KIFUファイル（変化・コメント付き可）を定跡として取り込みます。今の定跡に合流させることもできます。</li>
     <li><b>書出</b>：定跡を変化・コメントごとKIFファイルとして保存します。</li>
+    <li><b>📂 一覧</b>：保存した棋譜や定跡の棋譜から、暗記する棋譜を選べます。棋譜のバックアップと復元もここからできます。</li>
   </ul>
   <p class="note">データはこのブラウザ内に保存されます。別の端末へ移すときはKIFで書き出してください。</p>
   <form method="dialog"><button class="primary">閉じる</button></form>
@@ -166,7 +168,7 @@
   </form>
 </dialog>
 
-<script src="shogi.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script src="shogi.js?v=4"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

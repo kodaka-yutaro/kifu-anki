@@ -1,0 +1,42 @@
+[
+ {
+  "slug": "yagura",
+  "title": "矢倉の基本の駒組み",
+  "short": "矢倉"
+ },
+ {
+  "slug": "kakugawari",
+  "title": "角換わりの序盤",
+  "short": "角換わり"
+ },
+ {
+  "slug": "yokofudori",
+  "title": "横歩取りの基本手順",
+  "short": "横歩取り"
+ },
+ {
+  "slug": "aigakari",
+  "title": "相掛かりの序盤",
+  "short": "相掛かり"
+ },
+ {
+  "slug": "shikenbisha",
+  "title": "四間飛車（後手）の駒組みと美濃囲い",
+  "short": "四間飛車"
+ },
+ {
+  "slug": "gokigen-nakabisha",
+  "title": "ゴキゲン中飛車の序盤",
+  "short": "ゴキゲン中飛車"
+ },
+ {
+  "slug": "sankenbisha",
+  "title": "三間飛車（先手）の駒組み",
+  "short": "三間飛車"
+ },
+ {
+  "slug": "mino-gakoi",
+  "title": "美濃囲いの組み方",
+  "short": "美濃囲い"
+ }
+]
