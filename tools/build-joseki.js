@@ -74,7 +74,7 @@ ${body}
 </main>
 <div class="ad-slot" aria-label="広告">広告枠（準備中）</div>
 <footer class="site-footer">
-  <a href="../index.html">定跡暗記ツール</a> ・ <a href="index.html">定跡解説の一覧</a> ・ <a href="../about.html">運営者情報・お問い合わせ</a> ・ <a href="../privacy.html">プライバシーポリシー</a>
+  <a href="../index.html">棋譜暗記ツール</a> ・ <a href="index.html">定跡解説の一覧</a> ・ <a href="../oboekata.html">棋譜の覚え方</a> ・ <a href="../about.html">運営者情報・お問い合わせ</a> ・ <a href="../privacy.html">プライバシーポリシー</a>
 </footer>
 </body>
 </html>
@@ -143,7 +143,7 @@ ${ARTICLES.map(a => `<li><a href="${a.slug}.html"><b>${esc(a.title)}</b><span>${
 </ul>`
 }));
 
-const urls = ["", "joseki/", ...ARTICLES.map(a => `joseki/${a.slug}.html`), "about.html", "privacy.html"];
+const urls = ["", "joseki/", ...ARTICLES.map(a => `joseki/${a.slug}.html`), "oboekata.html", "about.html", "privacy.html"];
 fs.writeFileSync(path.join(ROOT, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map(u => `  <url><loc>${SITE}${u}</loc><lastmod>${TODAY}</lastmod></url>`).join("\n")}

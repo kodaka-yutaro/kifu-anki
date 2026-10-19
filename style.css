@@ -159,3 +159,8 @@ html[data-pieces="kokuryu"] .hand-piece { background:#222; color:#f5efe4; border
 .intro a { color:var(--accent); }
 .comment-cover { width:100%; min-height:110px; border:2px dashed var(--border); border-radius:8px; background:repeating-linear-gradient(45deg,#fbf3e3,#fbf3e3 8px,#f6ead2 8px,#f6ead2 16px); color:var(--accent); font-weight:bold; }
 .check + .check { margin-top:6px; }
+.site-header .tagline { display:block; font-size:.7rem; font-weight:normal; color:var(--muted); text-align:center; letter-spacing:.05em; }
+.intro h2 + p, .intro ul + p { margin-top:4px; }
+.intro h2:not(:first-child) { margin-top:14px; }
+.intro ul { margin:4px 0; padding-left:1.2em; }
+.intro li { margin:2px 0; }
