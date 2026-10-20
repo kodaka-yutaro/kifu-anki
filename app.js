@@ -171,6 +171,7 @@ function render() {
     const done = countLeaves(book.root, n => drill.done.has(n));
     $("progress").textContent = `変化 ${done} / ${total}　ミス ${drill.misses}`;
   }
+  if (window.KifuProblemEditor) window.KifuProblemEditor.refresh();
   tutorialAction("render");
 }
 
@@ -665,6 +666,19 @@ window.kifuReload = () => {
   load();
   refreshBooks();
   setMode(mode);
+};
+
+window.KifuProblemSource = {
+  current() {
+    if (mode !== "edit" || tutorialSession || !book || !cur()) return null;
+    return JSON.parse(JSON.stringify({
+      position: position(),
+      choices: cur().children.map(child => child.move),
+      explanation: cur().comment || "",
+      source: { title: book.title, ply: path.length - 1, previousMove: cur().move || null }
+    }));
+  },
+  notice: setMsg
 };
 
 // 定跡解説ページの「暗記する」ボタン（?kif=joseki/xxx.kif）から開いたとき
