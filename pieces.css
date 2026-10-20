@@ -81,7 +81,7 @@ html[data-pieces="rounded"] :is(.cell,.hand-piece) > .piece-body,
 html[data-pieces="rounded"] :is(.cell,.hand-piece) > .piece-body > .piece-letter,
 .pieces-rounded > .piece-body > .piece-letter { font-size:.92em; }
 
-/* 普通のコマ：細い縁と一字の明朝を使った、すっきりした木駒。 */
+/* 明朝体コマ：細い縁と一字の明朝を使った、すっきりした木駒。 */
 html[data-pieces="koma"] :is(.cell,.hand-piece) > .piece-body,
 .pieces-koma > .piece-body {
   font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP","Noto Serif JP",serif;
@@ -91,7 +91,7 @@ html[data-pieces="koma"] :is(.cell,.hand-piece) > .piece-body,
 html[data-pieces="koma"] :is(.cell,.hand-piece) > .piece-body > .piece-letter,
 .pieces-koma > .piece-body > .piece-letter { font-size:.9em; }
 
-/* 写真を参考にしたコマ：淡い木地、縦木目、面取り、縦2文字の筆文字。 */
+/* 本格コマ：淡い木地、縦木目、面取り、縦2文字の筆文字。 */
 html[data-pieces="photo"] :is(.cell,.hand-piece) > .piece-body,
 .pieces-photo > .piece-body {
   --piece-shape:polygon(50% 0,82% 12%,98% 97%,96% 100%,4% 100%,2% 97%,18% 12%);
@@ -100,7 +100,7 @@ html[data-pieces="photo"] :is(.cell,.hand-piece) > .piece-body,
   --piece-face:linear-gradient(180deg,rgba(255,250,222,.65),transparent 5%,transparent 93%,rgba(129,82,28,.13)),
     repeating-linear-gradient(89deg,transparent 0 3px,rgba(135,91,35,.07) 3.2px 3.7px,transparent 4px 8px,rgba(255,253,224,.23) 8px 8.6px,transparent 9px 13px),
     linear-gradient(102deg,#efd095,#f9e5b5 38%,#f5dba6 74%,#e9c88d);
-  padding:.14em 0 0;
+  padding:0;
   font-family:"Kifu Brush","Yuji Syuku","YuKyokasho","Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP",serif;
   font-weight:400;
   filter:drop-shadow(0 1.5px .75px rgba(67,42,13,.29));
@@ -108,7 +108,11 @@ html[data-pieces="photo"] :is(.cell,.hand-piece) > .piece-body,
 html[data-pieces="photo"] .cell > .piece-body,
 .pieces-photo > .piece-body { height:90%; }
 html[data-pieces="photo"] :is(.cell,.hand-piece) > .piece-body > .piece-letter,
-.pieces-photo > .piece-body > .piece-letter { font-size:.97em; }
+.pieces-photo > .piece-body > .piece-letter {
+  font-size:.97em;
+  /* 筆文字の上下余白を補正し、字面の中心を駒形の中心に合わせる。 */
+  transform:translateY(-.08em);
+}
 html[data-pieces="photo"] :is(.cell,.hand-piece) > .piece-body.two-letter > .piece-letter,
 .pieces-photo > .piece-body.two-letter > .piece-letter {
   font-size:.71em;
