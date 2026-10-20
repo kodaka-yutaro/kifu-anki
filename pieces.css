@@ -1,0 +1,131 @@
+/* 駒の見た目だけを変更する。マスの大きさ・選択範囲・後手の反転は共通のまま。 */
+html[data-pieces="plain"] .cell > span,
+.pieces-plain > span {
+  font-family:"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+  font-weight:500;
+}
+
+html[data-pieces="mincho"] .cell > span,
+html[data-pieces="mincho"] .hand-piece,
+.pieces-mincho > span {
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP","Noto Serif JP",serif;
+  font-weight:700;
+}
+
+/* 表面と縁だけを五角形にし、字を clip-path で切らない。 */
+html[data-pieces="koma"] .cell > span,
+html[data-pieces="kokuryu"] .cell > span,
+.pieces-koma > span,
+.pieces-kokuryu > span {
+  position:relative;
+  isolation:isolate;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:84%;
+  height:88%;
+  padding:.12em 0 0;
+  background:none;
+  clip-path:none;
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP","Noto Serif JP",serif;
+  font-size:.86em;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:0;
+  color:var(--piece-ink);
+  text-shadow:0 .5px 0 var(--piece-text-light);
+  filter:drop-shadow(0 1px .6px rgba(44,28,10,.24));
+}
+
+html[data-pieces="koma"] .cell > span,
+.pieces-koma > span {
+  --piece-edge:#a77b3f;
+  --piece-ink:#30271b;
+  --piece-text-light:rgba(255,250,228,.65);
+  --piece-face:linear-gradient(115deg,rgba(255,255,255,.27),transparent 48%),
+    repeating-linear-gradient(92deg,transparent 0 9px,rgba(149,100,31,.045) 10px,transparent 11px 18px),
+    linear-gradient(170deg,#f9e4b5 5%,#edcd8d 75%,#e6c17e);
+}
+
+html[data-pieces="kokuryu"] .cell > span,
+.pieces-kokuryu > span {
+  --piece-edge:#a88c58;
+  --piece-ink:#fff2d3;
+  --piece-text-light:rgba(0,0,0,.5);
+  --piece-face:linear-gradient(125deg,rgba(255,255,255,.07),transparent 55%),
+    linear-gradient(165deg,#45413c,#272622 75%,#22211e);
+  filter:drop-shadow(0 1px .7px rgba(0,0,0,.3));
+}
+
+html[data-pieces="koma"] .cell > span::before,
+html[data-pieces="kokuryu"] .cell > span::before,
+.pieces-koma > span::before,
+.pieces-kokuryu > span::before,
+html[data-pieces="koma"] .cell > span::after,
+html[data-pieces="kokuryu"] .cell > span::after,
+.pieces-koma > span::after,
+.pieces-kokuryu > span::after {
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  clip-path:polygon(50% 0,82% 17%,98% 100%,2% 100%,18% 17%);
+}
+
+html[data-pieces="koma"] .cell > span::before,
+html[data-pieces="kokuryu"] .cell > span::before,
+.pieces-koma > span::before,
+.pieces-kokuryu > span::before {
+  inset:0;
+  z-index:-2;
+  background:var(--piece-edge);
+}
+
+html[data-pieces="koma"] .cell > span::after,
+html[data-pieces="kokuryu"] .cell > span::after,
+.pieces-koma > span::after,
+.pieces-kokuryu > span::after {
+  inset:1px 1px 2px;
+  z-index:-1;
+  background:var(--piece-face);
+}
+
+html[data-pieces="koma"] .cell.promoted > span,
+.pieces-koma.promoted > span { --piece-ink:#a52722; }
+html[data-pieces="kokuryu"] .cell.promoted > span,
+.pieces-kokuryu.promoted > span { --piece-ink:#ffaaa0; }
+
+html[data-pieces="koma"] .hand-piece,
+html[data-pieces="kokuryu"] .hand-piece {
+  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP","Noto Serif JP",serif;
+  font-weight:700;
+  box-shadow:0 1px 1px rgba(44,28,10,.12);
+}
+html[data-pieces="koma"] .hand-piece { background:linear-gradient(#f9e4b5,#edcd8d); color:#30271b; border-color:#b28b50; }
+html[data-pieces="kokuryu"] .hand-piece { background:linear-gradient(#45413c,#272622); color:#fff2d3; border-color:#a88c58; }
+html[data-pieces="koma"] .hand-piece.selected,
+html[data-pieces="kokuryu"] .hand-piece.selected { outline:2px solid #1976d2; outline-offset:2px; }
+
+/* 設定で見た駒と、盤に置いた駒を同じ比率・配色で表示する。 */
+#pieceChoices { gap:8px; }
+#pieceChoices label { position:relative; min-width:0; gap:7px; padding:10px 5px 9px; border-radius:9px; line-height:1.3; text-align:center; }
+#pieceChoices label:has(input:checked) { background:#fbf4e8; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+#pieceChoices label:has(input:checked)::after { content:""; position:absolute; top:5px; right:5px; width:6px; height:6px; border-radius:50%; background:var(--accent); }
+#pieceChoices label:has(input:focus-visible) { outline:3px solid #1976d2; outline-offset:3px; }
+#pieceChoices .sample {
+  width:56px;
+  max-width:100%;
+  height:auto;
+  aspect-ratio:10/11;
+  border:1px solid rgba(107,74,31,.3);
+  border-radius:5px;
+  background:var(--board);
+  background-image:linear-gradient(135deg,rgba(255,255,255,.08),rgba(82,52,10,.04));
+  font-size:clamp(22px,6.5vw,29px);
+  color:var(--text);
+}
+html[data-board="dark"] #pieceChoices .sample { color:#f3ece1; border-color:#1d1a17; }
+
+@media (max-width:380px) {
+  #pieceChoices { gap:5px; }
+  #pieceChoices label { padding:8px 4px; font-size:.78rem; }
+}

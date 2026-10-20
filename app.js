@@ -520,6 +520,7 @@ async function importFiles(files) {
       d.returnValue = "";
       d.onclose = () => resolve(d.returnValue);
       d.showModal();
+      tutorialAction("dialog");
     });
     if (!choice || importSession !== tutorialSession || generation !== importGeneration) return;
   }
@@ -570,7 +571,7 @@ function initSettings() {
     }
     tutorialAction("settings");
   });
-  $("btnSettings").onclick = () => d.showModal();
+  $("btnSettings").onclick = () => { d.showModal(); tutorialAction("dialog"); };
   d.addEventListener("close", () => tutorialAction("dialog"));
 }
 

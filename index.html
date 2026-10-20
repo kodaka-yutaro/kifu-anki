@@ -16,13 +16,13 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"棋譜暗記道場","alternateName":"棋譜暗記サイト","url":"https://kifu.kdking-tools.com/","applicationCategory":"GameApplication","operatingSystem":"Web","inLanguage":"ja","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"description":"将棋の棋譜や定跡をツリーで管理し、盤上で指して暗記できる無料の棋譜暗記サイト。KIFファイルの読み込み・書き出しに対応。"}
 </script>
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="pieces.css?v=1">
 </head>
 <body>
 <header class="site-header app-header">
   <h1>棋譜暗記道場<span class="tagline">将棋の棋譜暗記サイト</span></h1>
   <div class="header-tools">
-    <button id="btnTutorial" class="tutorial-entry" type="button">チュートリアル</button>
     <button id="btnAccount" class="round account" title="Google でログイン" hidden>👤</button>
     <button id="btnSettings" class="round" title="設定" aria-label="設定">⚙</button>
     <button id="btnHelp" class="round" title="使い方" aria-label="使い方">?</button>
@@ -32,36 +32,6 @@
 <div class="ad-slot" aria-label="広告">広告枠（準備中）</div>
 
 <main>
-  <section id="tutorialWelcome" class="tutorial-card tutorial-welcome" aria-labelledby="tutorialWelcomeTitle" hidden>
-    <p class="tutorial-eyebrow">はじめての方へ</p>
-    <h2 id="tutorialWelcomeTitle">短い定跡で、使い方を体験しよう</h2>
-    <p>6手の定跡で編集・暗記・KIFを体験。いつでも終了して、あとからやり直せます。</p>
-    <div class="tutorial-actions">
-      <button id="btnTutorialStart" class="primary" type="button">チュートリアルを始める</button>
-      <button id="btnTutorialDismiss" type="button">今は使ってみる</button>
-    </div>
-  </section>
-
-  <section id="tutorialPanel" class="tutorial-card tutorial-panel" role="region" aria-labelledby="tutorialTitle" hidden>
-    <div class="tutorial-heading">
-      <p id="tutorialStep" class="tutorial-eyebrow">1 / 10</p>
-      <button id="btnTutorialExit" class="tutorial-exit" type="button" aria-label="チュートリアルを終了">終了</button>
-    </div>
-    <progress id="tutorialProgress" max="10" value="0" aria-label="チュートリアルの進み具合"></progress>
-    <h2 id="tutorialTitle" tabindex="-1"></h2>
-    <p id="tutorialText"></p>
-    <p id="tutorialHint" class="tutorial-hint"></p>
-    <p id="tutorialFeedback" class="tutorial-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
-    <div class="tutorial-actions">
-      <button id="btnTutorialBack" type="button">戻る</button>
-      <button id="btnTutorialRetry" type="button">この手順をやり直す</button>
-      <button id="btnTutorialLocate" type="button">操作する場所へ</button>
-      <button id="btnTutorialImport" type="button" hidden>練習用KIFを読み込む</button>
-      <button id="btnTutorialNext" class="primary" type="button">次へ</button>
-    </div>
-    <p class="tutorial-note">体験中の操作は練習用の棋譜だけに適用されます。</p>
-  </section>
-
   <section id="tutorialDone" class="tutorial-card tutorial-done" aria-labelledby="tutorialDoneTitle" hidden>
     <p class="tutorial-eyebrow">チュートリアル完了</p>
     <h2 id="tutorialDoneTitle" tabindex="-1">おつかれさまでした！</h2>
@@ -154,7 +124,7 @@
 
 <dialog id="helpDialog" class="dialog">
   <h2>使い方</h2>
-  <p class="tutorial-help">実際に駒を動かして使い方を覚えられます。<br><button id="btnHelpTutorial" type="button">チュートリアルを始める</button></p>
+  <p class="tutorial-help">6手の練習用の定跡で、実際に駒を動かして使い方を覚えられます。いつでも終了して、元の棋譜に戻れます。<br><button id="btnHelpTutorial" type="button">チュートリアルを始める</button></p>
   <h3>定跡をつくる（編集）</h3>
   <ul>
     <li>駒をタップして移動先をタップすると手が登録されます。持ち駒は盤の上下の駒をタップして打てます。</li>
@@ -190,11 +160,11 @@
     <label><input type="radio" name="board" value="dark"><span class="swatch board-dark"></span>夜</label>
   </div>
   <h3>駒</h3>
-  <div class="choices" id="pieceChoices">
+  <div class="choices" id="pieceChoices" role="radiogroup" aria-label="駒のデザイン">
     <label><input type="radio" name="pieces" value="plain"><span class="sample pieces-plain"><span>飛</span></span>文字</label>
     <label><input type="radio" name="pieces" value="mincho"><span class="sample pieces-mincho"><span>飛</span></span>明朝</label>
-    <label><input type="radio" name="pieces" value="koma"><span class="sample pieces-koma"><span>飛</span></span>駒形</label>
-    <label><input type="radio" name="pieces" value="kokuryu"><span class="sample pieces-kokuryu"><span>飛</span></span>駒形・黒</label>
+    <label><input type="radio" name="pieces" value="koma"><span class="sample pieces-koma"><span>飛</span></span>木の駒</label>
+    <label><input type="radio" name="pieces" value="kokuryu"><span class="sample pieces-kokuryu"><span>飛</span></span>黒の駒</label>
   </div>
   <h3>表示</h3>
   <label class="check"><input type="checkbox" id="optArrows"> 最初・最後へ飛ぶボタン（⏮ ⏭）を表示</label>
@@ -233,15 +203,27 @@
   </form>
 </dialog>
 
-<aside id="tutorialDock" class="tutorial-dock" role="region" aria-label="チュートリアルの操作" hidden>
-  <span id="tutorialDockText"></span>
-  <button id="btnTutorialGuide" type="button">案内へ</button>
-  <button id="btnTutorialDockNext" class="primary" type="button" disabled>次へ</button>
-</aside>
+<section id="tutorialPanel" class="tutorial-guide" role="region" aria-labelledby="tutorialTitle" aria-describedby="tutorialHint" hidden>
+  <div class="tutorial-guide-content">
+    <div class="tutorial-heading">
+      <p id="tutorialStep" class="tutorial-eyebrow">1 / 10</p>
+      <button id="btnTutorialExit" class="tutorial-exit" type="button" aria-label="チュートリアルを終了">終了</button>
+    </div>
+    <progress id="tutorialProgress" max="10" value="0" aria-label="チュートリアルの進み具合"></progress>
+    <h2 id="tutorialTitle" tabindex="-1"></h2>
+    <p id="tutorialHint" class="tutorial-hint"></p>
+    <p id="tutorialFeedback" class="tutorial-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div class="tutorial-actions">
+      <button id="btnTutorialBack" type="button">戻る</button>
+      <button id="btnTutorialRetry" type="button" aria-label="この手順をやり直す">やり直す</button>
+      <button id="btnTutorialNext" class="primary" type="button">次へ</button>
+    </div>
+  </div>
+</section>
 
 <script src="shogi.js?v=4"></script>
-<script src="app.js?v=6"></script>
-<script src="tutorial.js?v=1"></script>
+<script src="app.js?v=7"></script>
+<script src="tutorial.js?v=2"></script>
 <script type="module" src="sync.js?v=2"></script>
 </body>
 </html>
