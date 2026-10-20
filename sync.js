@@ -132,7 +132,15 @@ function initUI() {
   $("btnSignIn").onclick = async () => {
     try { await signInWithPopup(auth, new GoogleAuthProvider()); d.close(); }
     catch (e) {
-      if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") status("ログインできませんでした");
+      if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") return;
+      const why = {
+        "auth/unauthorized-domain": "このサイトのドメインが Firebase で許可されていません",
+        "auth/operation-not-allowed": "Firebase で Google ログインが有効になっていません",
+        "auth/configuration-not-found": "Firebase の Authentication が始まっていません",
+        "auth/popup-blocked": "ポップアップがブロックされました。ブラウザの設定で許可してください",
+        "auth/network-request-failed": "通信できませんでした"
+      }[e.code];
+      status(`ログインできませんでした（${why || e.code || e.message}）`);
     }
   };
   $("btnSignOut").onclick = async () => {
