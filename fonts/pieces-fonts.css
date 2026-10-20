@@ -1,0 +1,16 @@
+/* Subsets for shogi pieces only; both derived fonts retain SIL OFL 1.1.
+   Sources and reproduction notes: SOURCES.md. */
+@font-face {
+  font-family:"Kifu Rounded";
+  src:url("kifu-rounded-bold.woff") format("woff");
+  font-style:normal;
+  font-weight:700;
+  font-display:swap;
+}
+@font-face {
+  font-family:"Kifu Brush";
+  src:url("kifu-brush-regular.woff") format("woff");
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+}

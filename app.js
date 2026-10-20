@@ -115,6 +115,17 @@ function mergeTree(dst, src) {
 }
 
 // ---------- 描画 ----------
+const FULL_PIECE_NAME = { k: "玉将", r: "飛車", b: "角行", g: "金将", s: "銀将", n: "桂馬", l: "香車", p: "歩兵" };
+const FULL_PROMOTED_NAME = { r: "龍王", b: "龍馬", s: "成銀", n: "成桂", l: "成香", p: "と" };
+function pieceMarkup(piece) {
+  const photo = settings.pieces === "photo";
+  const name = photo
+    ? (piece.pr ? FULL_PROMOTED_NAME[piece.t] : piece.t === "k" && !piece.s ? "王将" : FULL_PIECE_NAME[piece.t])
+    : (piece.pr ? S.PRO_CHAR[piece.t] : S.NAME[piece.t]);
+  const twoLetter = photo && name.length === 2;
+  return `<span class="piece-body${twoLetter ? " two-letter" : ""}" data-piece="${piece.t}" aria-hidden="true"><b class="piece-letter">${twoLetter ? [...name].join("\n") : name}</b></span>`;
+}
+
 function userTurn(pos) {
   if (mode === "edit" || mode === "both") return true;
   return (mode === "sente") === pos.turn;
@@ -183,7 +194,7 @@ function renderBoard(pos) {
     const p = pos.sq[f][r];
     cell.setAttribute("aria-label", `${f}${S.KANJI[r]} ${p ? (p.s ? "先手" : "後手") + (p.pr ? S.PRO_CHAR[p.t] : S.NAME[p.t]) : "空きマス"}`);
     if (p) {
-      cell.innerHTML = `<span>${p.pr ? S.PRO_CHAR[p.t] : S.NAME[p.t]}</span>`;
+      cell.innerHTML = pieceMarkup(p);
       if (p.s === flip) cell.classList.add("rev");
       if (p.pr) cell.classList.add("promoted");
     }
@@ -210,8 +221,10 @@ function renderHands(pos) {
       if (!hand[t]) continue;
       any = true;
       const b = document.createElement("button");
+      b.type = "button";
       b.className = "hand-piece";
-      b.innerHTML = S.NAME[t] + (hand[t] > 1 ? `<small>${hand[t]}</small>` : "");
+      b.setAttribute("aria-label", `${side ? "先手" : "後手"}の持駒 ${S.NAME[t]} ${hand[t]}枚`);
+      b.innerHTML = pieceMarkup({ t, s: side, pr: false }) + (hand[t] > 1 ? `<small aria-hidden="true">${hand[t]}</small>` : "");
       if (sel && sel.drop === t && pos.turn === side) b.classList.add("selected");
       if (hint && hint.drop === t && pos.turn === side) b.classList.add("hint");
       b.onclick = () => onHand(side, t);
@@ -556,6 +569,10 @@ function refreshSettingsControls() {
 }
 function initSettings() {
   try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch (e) { /* 既定値のまま */ }
+  if (settings.board === "dark") settings.board = "felt";
+  settings.pieces = ({ mincho: "rounded", kokuryu: "photo" })[settings.pieces] || settings.pieces;
+  if (!["kaya", "light", "green", "felt"].includes(settings.board)) settings.board = "kaya";
+  if (!["plain", "rounded", "koma", "photo"].includes(settings.pieces)) settings.pieces = "plain";
   applySettings();
   const d = $("settingsDialog");
   refreshSettingsControls();
