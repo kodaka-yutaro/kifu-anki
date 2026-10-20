@@ -48,6 +48,16 @@ let parentOf = new Map();
 let timer = null;
 let hint = null;          // 答えボタンで光らせる駒 { from } または { drop }
 let revealedNode = null;   // 暗記中にコメントをめくった局面
+let commentSaveTimer = null;
+let tutorialSession = null;
+let importGeneration = 0;
+let linkedKifPending = false;
+let hasStoredBooks = false;
+const arrivedViaKif = new URLSearchParams(location.search).has("kif");
+
+function tutorialAction(type, detail = {}) {
+  if (window.KifuTutorial) window.KifuTutorial.onAction(type, detail);
+}
 
 const cur = () => path[path.length - 1];
 function position() {
@@ -59,15 +69,18 @@ const prevTo = () => cur().move && cur().move.to;
 
 // ---------- 保存 ----------
 function save() {
+  if (tutorialSession) return false;
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify({ books, current: books.indexOf(book) }));
-  } catch (e) { /* 保存できない環境でも動作は続ける */ }
+  } catch (e) { return false; }
   if (window.onKifuSaved) window.onKifuSaved();   // ログイン中ならサーバーにも保存（sync.js）
+  return true;
 }
 function load() {
   try {
     const data = JSON.parse(localStorage.getItem(STORE_KEY));
     if (data && data.books && data.books.length) {
+      hasStoredBooks = true;
       books = data.books;
       book = books[data.current] || books[0];
       return;
@@ -147,20 +160,28 @@ function render() {
     const done = countLeaves(book.root, n => drill.done.has(n));
     $("progress").textContent = `変化 ${done} / ${total}　ミス ${drill.misses}`;
   }
+  tutorialAction("render");
 }
 
 function renderBoard(pos) {
   const flip = mode === "gote";
   const el = $("board");
+  const focused = document.activeElement;
+  const focusSquare = focused && focused.parentElement === el
+    ? [focused.dataset.file, focused.dataset.rank] : null;
   el.innerHTML = "";
   const last = cur().move && cur().move.to;
   const targets = sel ? sel.targets : [];
   for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) {
     const r = flip ? 9 - i : i + 1;
     const f = flip ? j + 1 : 9 - j;
-    const cell = document.createElement("div");
+    const cell = document.createElement("button");
+    cell.type = "button";
     cell.className = "cell";
+    cell.dataset.file = f;
+    cell.dataset.rank = r;
     const p = pos.sq[f][r];
+    cell.setAttribute("aria-label", `${f}${S.KANJI[r]} ${p ? (p.s ? "先手" : "後手") + (p.pr ? S.PRO_CHAR[p.t] : S.NAME[p.t]) : "空きマス"}`);
     if (p) {
       cell.innerHTML = `<span>${p.pr ? S.PRO_CHAR[p.t] : S.NAME[p.t]}</span>`;
       if (p.s === flip) cell.classList.add("rev");
@@ -172,6 +193,7 @@ function renderBoard(pos) {
     if (targets.some(t => S.sameSq(t, [f, r]))) cell.classList.add("target");
     cell.onclick = () => onCell(f, r);
     el.appendChild(cell);
+    if (focusSquare && +focusSquare[0] === f && +focusSquare[1] === r) cell.focus({ preventScroll: true });
   }
   const nums = flip ? [1,2,3,4,5,6,7,8,9] : [9,8,7,6,5,4,3,2,1];
   $("files").innerHTML = nums.map(n => `<span>${n}</span>`).join("");
@@ -242,7 +264,7 @@ function renderTree() {
     if (done) cls.push("done");
     if (!show) cls.push("hidden");
     const text = show ? it.lbl : "？";
-    svg += `<g class="${cls.join(" ")}" data-i="${items.indexOf(it)}" transform="translate(${x(it.depth)},${y(it.row)})">` +
+    svg += `<g class="${cls.join(" ")}" data-i="${items.indexOf(it)}" data-ply="${it.depth}" role="button" tabindex="${drilling ? -1 : 0}" aria-disabled="${!!drilling}" aria-label="${it.depth}手目 ${text}" transform="translate(${x(it.depth)},${y(it.row)})">` +
       `<rect width="${BW}" height="${BH}" rx="5"/>` +
       `<text x="${BW / 2}" y="${BH / 2 + 4}">${text}</text>` +
       (n.comment && show ? `<circle cx="${BW - 4}" cy="4" r="3" class="cmark"/>` : "") + `</g>`;
@@ -253,8 +275,13 @@ function renderTree() {
   tree.querySelectorAll("g.node").forEach(g => {
     g.onclick = () => {
       if (mode !== "edit") return;
+      if (tutorialSession && window.KifuTutorial && !window.KifuTutorial.canUseTree()) return;
       path = pathTo(items[+g.dataset.i].node);
       sel = null; render(); setMsg("");
+      tutorialAction("tree");
+    };
+    g.onkeydown = e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); g.onclick(); }
     };
   });
   const curEl = tree.querySelector("g.current");
@@ -309,6 +336,11 @@ function askPromote() {
 }
 
 function play(m, pos) {
+  if (tutorialSession && window.KifuTutorial && !window.KifuTutorial.canPlay(m)) {
+    sel = null;
+    render();
+    return;
+  }
   hint = null;
   const node = cur();
   let child = node.children.find(c => S.moveEq(c.move, m));
@@ -316,7 +348,9 @@ function play(m, pos) {
     if (!child) { child = S.newNode(m); node.children.push(child); save(); }
     path.push(child);
     setMsg(S.label(pos, m, prevToOf(node)));
-    return render();
+    render();
+    tutorialAction("play", { move: m });
+    return;
   }
   if (!child) {
     drill.misses++;
@@ -330,6 +364,7 @@ function play(m, pos) {
   path.push(child);
   setMsg("○ " + S.label(pos, m, prevToOf(node)), "ok");
   advance();
+  tutorialAction("play", { move: m });
 }
 const prevToOf = n => n.move && n.move.to;
 
@@ -370,6 +405,7 @@ function advance() {
     }
     drill.waiting = true;
     $("btnContinue").hidden = false;
+    tutorialAction("drill");
     return;
   }
   const pos = position();
@@ -396,6 +432,7 @@ function showAnswer() {
   hint = c.move.from ? { from: c.move.from } : { drop: c.move.t };
   setMsg(c.move.from ? "光っている駒を動かします。" : "光っている持ち駒を打ちます。");
   render();
+  tutorialAction("answer");
 }
 
 // ---------- モード・定跡の切り替え ----------
@@ -413,6 +450,7 @@ function setMode(m) {
     setMsg("駒を動かして手順を登録できます。");
     render();
   } else startDrill();
+  tutorialAction("mode", { mode: m });
 }
 
 function refreshBooks() {
@@ -448,6 +486,7 @@ function exportKIF() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  tutorialAction("export");
 }
 
 function decode(buf) {
@@ -456,6 +495,8 @@ function decode(buf) {
 }
 
 async function importFiles(files) {
+  const importSession = tutorialSession;
+  const generation = ++importGeneration;
   const parsed = [];
   for (const file of files) {
     try {
@@ -467,7 +508,7 @@ async function importFiles(files) {
       alert(`「${file.name}」を読み込めませんでした。\n${e.message}`);
     }
   }
-  if (!parsed.length) return;
+  if (!parsed.length || importSession !== tutorialSession || generation !== importGeneration) return;
   let choice = "new";
   if (isLeaf(book.root)) choice = "fill";
   else {
@@ -480,7 +521,7 @@ async function importFiles(files) {
       d.onclose = () => resolve(d.returnValue);
       d.showModal();
     });
-    if (!choice) return;
+    if (!choice || importSession !== tutorialSession || generation !== importGeneration) return;
   }
   if (choice === "new") {
     parsed.forEach(p => books.push(p));
@@ -493,6 +534,7 @@ async function importFiles(files) {
   save();
   setMode("edit");
   setMsg("読み込みました。", "ok");
+  tutorialAction("import");
 }
 
 // ---------- 設定 ----------
@@ -504,13 +546,18 @@ function applySettings() {
   html.dataset.pieces = settings.pieces;
   html.classList.toggle("no-arrows", !settings.arrows);
 }
+function refreshSettingsControls() {
+  const d = $("settingsDialog");
+  d.querySelectorAll("input[name=board]").forEach(i => i.checked = i.value === settings.board);
+  d.querySelectorAll("input[name=pieces]").forEach(i => i.checked = i.value === settings.pieces);
+  $("optArrows").checked = settings.arrows;
+  $("optHideComments").checked = settings.hideComments;
+}
 function initSettings() {
   try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}); } catch (e) { /* 既定値のまま */ }
   applySettings();
   const d = $("settingsDialog");
-  d.querySelectorAll(`input[name=board][value=${settings.board}], input[name=pieces][value=${settings.pieces}]`).forEach(i => i.checked = true);
-  $("optArrows").checked = settings.arrows;
-  $("optHideComments").checked = settings.hideComments;
+  refreshSettingsControls();
   d.addEventListener("change", () => {
     settings.board = d.querySelector("input[name=board]:checked").value;
     settings.pieces = d.querySelector("input[name=pieces]:checked").value;
@@ -518,9 +565,13 @@ function initSettings() {
     settings.hideComments = $("optHideComments").checked;
     if (book) render();
     applySettings();
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* 保存できなくても反映はする */ }
+    if (!tutorialSession) {
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* 保存できなくても反映はする */ }
+    }
+    tutorialAction("settings");
   });
   $("btnSettings").onclick = () => d.showModal();
+  d.addEventListener("close", () => tutorialAction("dialog"));
 }
 
 // ---------- 初期化 ----------
@@ -544,12 +595,16 @@ function init() {
     selectBook(books[0]);
   };
   document.querySelectorAll(".modes button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
-  const nav = to => { if (mode !== "edit") return; path = to; sel = null; render(); setMsg(""); };
+  const nav = (to, via) => {
+    if (mode !== "edit") return;
+    path = to; sel = null; render(); setMsg("");
+    tutorialAction("navigate", { via });
+  };
   const mainLine = () => { const p = path.slice(); while (p[p.length - 1].children.length) p.push(p[p.length - 1].children[0]); return p; };
-  $("btnFirst").onclick = () => nav([book.root]);
-  $("btnPrev").onclick = () => path.length > 1 && nav(path.slice(0, -1));
-  $("btnNext").onclick = () => cur().children.length && nav([...path, cur().children[0]]);
-  $("btnLast").onclick = () => nav(mainLine());
+  $("btnFirst").onclick = () => nav([book.root], "first");
+  $("btnPrev").onclick = () => path.length > 1 && nav(path.slice(0, -1), "prev");
+  $("btnNext").onclick = () => cur().children.length && nav([...path, cur().children[0]], "next");
+  $("btnLast").onclick = () => nav(mainLine(), "last");
   $("btnCut").onclick = () => {
     if (path.length < 2) return;
     const node = cur(), parent = path[path.length - 2];
@@ -560,17 +615,22 @@ function init() {
   };
   $("btnAnswer").onclick = showAnswer;
   $("btnContinue").onclick = () => complete(book.root) ? startDrill() : restartLine();
-  let saveTimer;
-  $("commentCover").onclick = () => { revealedNode = cur(); render(); };
+  $("commentCover").onclick = () => { revealedNode = cur(); render(); tutorialAction("reveal"); };
   $("comment").oninput = e => {
     if (mode !== "edit") return;
     cur().comment = e.target.value;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => { save(); renderTree(); }, 400);
+    clearTimeout(commentSaveTimer);
+    const editingSession = tutorialSession;
+    commentSaveTimer = setTimeout(() => {
+      commentSaveTimer = null;
+      if (editingSession !== tutorialSession) return;
+      save(); renderTree(); tutorialAction("render");
+    }, 400);
+    tutorialAction("comment");
   };
   $("btnHelp").onclick = () => $("helpDialog").showModal();
   document.addEventListener("keydown", e => {
-    if (e.target.tagName === "TEXTAREA" || document.querySelector("dialog[open]")) return;
+    if (["TEXTAREA", "INPUT", "SELECT", "BUTTON"].includes(e.target.tagName) || document.querySelector("dialog[open]")) return;
     if (e.key === "ArrowLeft") $("btnPrev").click();
     else if (e.key === "ArrowRight") $("btnNext").click();
     else if (e.key === "Enter" && !$("btnContinue").hidden && mode !== "edit") $("btnContinue").click();
@@ -583,6 +643,7 @@ function init() {
 
 // ログインしてサーバーの棋譜を読み込んだとき（sync.js から呼ばれる）
 window.kifuReload = () => {
+  if (tutorialSession) { tutorialSession.reloadPending = true; return; }
   load();
   refreshBooks();
   setMode(mode);
@@ -593,6 +654,7 @@ async function openLinkedKif() {
   const params = new URLSearchParams(location.search);
   const file = params.get("kif");
   if (!file || !/^joseki\/[\w-]+\.kif$/.test(file)) return;
+  linkedKifPending = true;
   history.replaceState(null, "", location.pathname);
   try {
     const text = decode(await (await fetch(file)).arrayBuffer());
@@ -606,6 +668,96 @@ async function openLinkedKif() {
     setMsg("定跡を読み込みました。上の「暗記」から始められます。", "ok");
   } catch (e) {
     setMsg("定跡を読み込めませんでした。", "ng");
+  } finally {
+    linkedKifPending = false;
+    tutorialAction("ready");
   }
 }
+
+// チュートリアルも通常の盤・編集・暗記・KIF処理を使用する。棋譜と設定の保存だけを分離する。
+window.KifuTutorialApp = {
+  state() {
+    return {
+      active: !!tutorialSession, mode, depth: path.length - 1, node: cur(), root: book.root,
+      path: path.slice(), position: position(), hint, selected: sel,
+      done: drill ? countLeaves(book.root, n => drill.done.has(n)) : 0,
+      nextMove: (drill ? cur().children.find(n => !complete(n)) : cur().children[0])?.move || null,
+      total: countLeaves(book.root, () => true), waiting: !!(drill && drill.waiting),
+      settings: { ...settings }, revealed: revealedNode === cur(),
+      hasStoredBooks, linkedKifPending, arrivedViaKif
+    };
+  },
+  begin(title, kif) {
+    if (tutorialSession || linkedKifPending) return false;
+    if (commentSaveTimer !== null) {
+      clearTimeout(commentSaveTimer); commentSaveTimer = null; save();
+    }
+    clearTimeout(timer);
+    tutorialSession = { books, book, path: path.slice(), settings: { ...settings }, title, reloadPending: false };
+    settings = { ...settings, arrows: true, hideComments: false };
+    refreshSettingsControls(); applySettings();
+    this.sample(kif);
+    document.body.classList.add("in-tutorial");
+    return true;
+  },
+  sample(kif, { depth = 0, alternate = false, comment = null } = {}) {
+    if (!tutorialSession) return;
+    importGeneration++;
+    clearTimeout(timer);
+    clearTimeout(commentSaveTimer); commentSaveTimer = null;
+    book = { title: tutorialSession.title, root: S.parseKIF(kif) };
+    books = [book];
+    settings.hideComments = false;
+    settings.arrows = true;
+    refreshSettingsControls(); applySettings();
+    if (comment !== null) {
+      let n = book.root;
+      while (n.children.length) n = n.children[0];
+      n.comment = comment;
+    }
+    refreshBooks();
+    revealedNode = null;
+    setMode("edit");
+    for (let i = 0; i < depth && cur().children.length; i++) {
+      const children = cur().children;
+      path.push(alternate && i === depth - 1 ? children[children.length - 1] : children[0]);
+    }
+    render();
+  },
+  mode: setMode,
+  importSample(kif) {
+    if (!tutorialSession) return Promise.resolve();
+    return importFiles([new File([kif], "チュートリアル.kif", { type: "text/plain" })]);
+  },
+  finish(keep = false) {
+    if (!tutorialSession) return;
+    importGeneration++;
+    clearTimeout(timer);
+    clearTimeout(commentSaveTimer); commentSaveTimer = null;
+    const session = tutorialSession;
+    const kept = keep ? JSON.parse(JSON.stringify(book)) : null;
+    tutorialSession = null;
+    if (session.reloadPending) load();
+    else { books = session.books; book = session.book; }
+    settings = session.settings;
+    refreshSettingsControls(); applySettings();
+    let keptSaved = true;
+    if (kept) {
+      const base = session.title;
+      kept.title = base;
+      for (let i = 2; books.some(b => b.title === kept.title); i++) kept.title = `${base}（${i}）`;
+      books.push(kept); book = kept; keptSaved = save();
+    }
+    refreshBooks();
+    revealedNode = null;
+    setMode("edit");
+    if (!kept && !session.reloadPending) { path = session.path; render(); }
+    document.body.classList.remove("in-tutorial");
+    if (kept && !keptSaved) setMsg("このブラウザに保存できませんでした。画面を閉じる前に「書出」でKIFを保存してください。", "ng");
+    else setMsg(kept ? "練習用の定跡を保存しました。いつでも暗記を続けられます。" : "元の棋譜に戻りました。チュートリアルはいつでもやり直せます。", "ok");
+  }
+};
+window.addEventListener("storage", e => {
+  if (tutorialSession && e.key === STORE_KEY) tutorialSession.reloadPending = true;
+});
 init();

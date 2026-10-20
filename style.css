@@ -27,7 +27,8 @@ main { max-width:960px; margin:0 auto; padding:0 16px; }
 .files { grid-column:1; display:grid; grid-template-columns:repeat(9,1fr); font-size:.7rem; color:var(--muted); text-align:center; }
 .ranks { grid-column:2; grid-row:2; display:grid; grid-template-rows:repeat(9,1fr); font-size:.7rem; color:var(--muted); align-items:center; text-align:center; }
 .board { grid-column:1; grid-row:2; display:grid; grid-template-columns:repeat(9,1fr); grid-template-rows:repeat(9,1fr); aspect-ratio:9/9.8; background:var(--board); border:2px solid var(--line); }
-.cell { border:1px solid rgba(107,74,31,.55); display:flex; align-items:center; justify-content:center; font-size:clamp(15px,5.2vw,27px); cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; }
+.cell { position:relative; border:1px solid rgba(107,74,31,.55); border-radius:0; padding:0; min-width:0; min-height:0; background:transparent; display:flex; align-items:center; justify-content:center; font-family:inherit; font-size:clamp(15px,5.2vw,27px); font-weight:normal; cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent; appearance:none; }
+.cell:focus-visible { z-index:1; outline:3px solid #1976d2; outline-offset:-4px; }
 .cell span { display:inline-block; line-height:1; }
 .cell.rev span { transform:rotate(180deg); }
 .cell.promoted { color:#b71c1c; }
@@ -181,3 +182,68 @@ a.button:hover { border-color:var(--accent); }
 .dialog.small p.plain { font-weight:normal; margin:0 0 10px; line-height:1.6; }
 .dialog p.row { margin:0 0 6px; justify-content:flex-start; }
 @media (max-width:480px) { .site-header { justify-content:flex-start; } }
+
+/* ---- 体験チュートリアル ---- */
+.app-header { justify-content:space-between; flex-wrap:wrap; }
+.app-header .header-tools { position:static; margin-left:auto; align-items:center; flex-wrap:wrap; }
+.app-header .tagline { text-align:left; }
+.tutorial-entry { font-size:.8rem; font-weight:bold; min-height:36px; color:var(--accent); }
+.tutorial-card { margin:14px 0; padding:16px 18px; border:1px solid var(--border); border-radius:12px; background:var(--panel); overflow-wrap:anywhere; }
+.tutorial-card h2 { margin:6px 0 8px; font-size:1.08rem; line-height:1.5; color:var(--accent); }
+.tutorial-card p { margin:6px 0; line-height:1.65; }
+.tutorial-card .tutorial-eyebrow { margin:0; font-size:.78rem; font-weight:bold; letter-spacing:.04em; color:var(--accent); }
+.tutorial-welcome { border-left:4px solid var(--accent); background:#fffaf1; }
+.tutorial-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.tutorial-exit { min-height:36px; padding:4px 12px; font-size:.85rem; }
+.tutorial-panel progress { display:block; width:100%; height:5px; margin:8px 0 12px; border:none; border-radius:20px; overflow:hidden; background:#eee4d5; accent-color:var(--accent); }
+.tutorial-panel progress::-webkit-progress-bar { border-radius:20px; background:#eee4d5; }
+.tutorial-panel progress::-webkit-progress-value { border-radius:20px; background:var(--accent); }
+.tutorial-panel progress::-moz-progress-bar { border-radius:20px; background:var(--accent); }
+.tutorial-card .tutorial-hint { padding:8px 10px; border-radius:7px; background:#f6f0e4; font-size:.9rem; }
+.tutorial-card .tutorial-feedback { color:var(--ok); font-size:.9rem; font-weight:bold; }
+.tutorial-card .tutorial-feedback.ng { color:var(--ng); }
+.tutorial-hint:empty, .tutorial-feedback:empty { display:none; }
+.tutorial-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.tutorial-actions button { min-height:44px; line-height:1.4; }
+.tutorial-actions button:disabled { opacity:.45; cursor:not-allowed; }
+.tutorial-actions #btnTutorialNext { margin-left:auto; min-width:88px; }
+.tutorial-card .tutorial-note { margin-top:12px; font-size:.78rem; color:var(--muted); }
+.tutorial-completed { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 22px; margin:12px 0; padding-left:1.3em; font-size:.9rem; line-height:1.6; }
+.tutorial-done { border-top:3px solid var(--ok); }
+.tutorial-done .tutorial-eyebrow { color:var(--ok); }
+.tutorial-help { padding:10px 12px; border-radius:8px; background:#f6f0e4; font-size:.9rem; line-height:1.6; }
+.tutorial-help button { margin-top:8px; min-height:40px; }
+.tutorial-target { outline:3px solid #1976d2; outline-offset:3px; }
+.tree .node.tutorial-target rect { stroke:#1976d2; stroke-width:3px; }
+.cell.tutorial-from::after, .cell.tutorial-to::after { position:absolute; inset:3px; border:3px solid #1976d2; border-radius:3px; content:""; pointer-events:none; }
+.cell.tutorial-to::after { border-style:dashed; border-color:#237441; }
+html[data-board="dark"] .cell.tutorial-from::after { border-color:#7dc5ff; }
+html[data-board="dark"] .cell.tutorial-to::after { border-color:#8dddb0; }
+.tutorial-card button:focus-visible, .tutorial-entry:focus-visible { outline:3px solid #1976d2; outline-offset:3px; }
+.tutorial-dock { display:none; }
+@media (max-width:700px) {
+  body.in-tutorial { padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px)); }
+  .tutorial-dock { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:8px; position:fixed; z-index:20; left:0; right:0; bottom:0; padding:8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--border); background:#fffaf4; box-shadow:0 -3px 14px rgba(62,43,20,.12); }
+  .tutorial-dock span { font-size:.78rem; font-weight:bold; line-height:1.5; color:var(--accent); overflow-wrap:anywhere; }
+  .tutorial-dock button { min-height:44px; padding:8px 10px; font-size:.85rem; white-space:nowrap; }
+  .tutorial-dock button:disabled { opacity:.45; cursor:not-allowed; }
+  .tutorial-dock button:focus-visible { outline:3px solid #1976d2; outline-offset:2px; }
+  .tutorial-dock .primary { min-width:68px; }
+}
+@media (max-width:600px) {
+  .tutorial-card { padding:12px; }
+  .tutorial-card h2 { font-size:1rem; }
+  .tutorial-card p { font-size:.9rem; }
+  .tutorial-card .tutorial-note { font-size:.75rem; }
+  .tutorial-actions { gap:6px; }
+  .tutorial-actions button { padding:8px 10px; font-size:.85rem; }
+  .tutorial-completed { grid-template-columns:1fr; gap:4px; }
+}
+@media (max-width:380px) {
+  .app-header .header-tools { width:100%; justify-content:flex-end; }
+  .tutorial-actions #btnTutorialNext { flex:1; }
+  .tutorial-actions #btnTutorialImport { width:100%; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .cell.hint, .hand-piece.hint { animation:none; }
+}
