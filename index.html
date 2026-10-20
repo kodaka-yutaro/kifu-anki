@@ -16,7 +16,7 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"棋譜暗記道場","alternateName":"棋譜暗記サイト","url":"https://kifu.kdking-tools.com/","applicationCategory":"GameApplication","operatingSystem":"Web","inLanguage":"ja","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"description":"将棋の棋譜や定跡をツリーで管理し、盤上で指して暗記できる無料の棋譜暗記サイト。KIFファイルの読み込み・書き出しに対応。"}
 </script>
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 <link rel="stylesheet" href="fonts/pieces-fonts.css?v=1">
 <link rel="stylesheet" href="pieces.css?v=3">
 <link rel="stylesheet" href="problem-editor.css?v=1">
@@ -44,16 +44,18 @@
       <li>先手・後手・両方の立場で暗記する</li>
       <li>答え・表示設定・KIFの読み書きを使う</li>
     </ul>
-    <p class="tutorial-note">通常の棋譜は、このブラウザに自動で保存されます。「一覧」から選び直したり、バックアップを作ったりできます。</p>
+    <p class="tutorial-note">通常の棋譜は、このブラウザに自動で保存されます。「ファイル」から選び直したり、バックアップを作ったりできます。</p>
     <div class="tutorial-actions">
       <button id="btnTutorialFinish" class="primary" type="button">元の棋譜に戻る</button>
       <button id="btnTutorialKeep" type="button">練習用の定跡を残して終了</button>
     </div>
   </section>
 
-  <div class="bar">
-    <select id="bookSelect" aria-label="定跡"></select>
-    <a id="btnLibrary" class="button" href="library.html" title="棋譜・次の一手問題集の一覧">📂 一覧</a>
+  <div class="board-file-heading">
+    <a id="btnLibrary" class="file-return" href="library.html" title="ファイル画面へ戻る">← ファイル</a>
+    <h2 id="currentBookTitle" class="current-book-title">棋譜ファイル</h2>
+  </div>
+  <div class="bar" aria-label="開いている棋譜の操作">
     <button id="btnNew" class="icon" title="新しい定跡">＋</button>
     <button id="btnImport" title="KIFファイルを読み込む">読込</button>
     <button id="btnExport" title="KIFファイルとして保存">書出</button>
@@ -150,14 +152,14 @@
   <ul>
     <li><b>読込</b>：KIF/KIFUファイル（変化・コメント付き可）を定跡として取り込みます。今の定跡に合流させることもできます。</li>
     <li><b>書出</b>：定跡を変化・コメントごとKIFファイルとして保存します。</li>
-    <li><b>📂 一覧</b>：保存した棋譜・次の一手問題集を選べます。問題集の新規作成、すべてのデータのバックアップと復元もここからできます。</li>
+    <li><b>ファイル</b>：棋譜ファイルを読み込み、保存した棋譜・次の一手ブックを選べます。ブックの新規作成、すべてのデータのバックアップと復元もここからできます。</li>
   </ul>
   <h3>次の一手問題をつくる</h3>
   <ul>
     <li>編集モードで出題したい局面を開き、「この局面の次の一手問題を作る」を押します。</li>
     <li>正解はその局面の次の手（本線・分岐）から選びます。問題文は空欄でも保存できます。</li>
     <li>解説文には現在の局面のコメントが入り、自由に書き換えられます。</li>
-    <li>保存先の問題集を選んで保存します。作った問題は「📂 一覧」から開いて解けます。</li>
+    <li>保存先の問題集を選んで保存します。作った問題は「ファイル」から開いて解けます。</li>
   </ul>
   <p class="note">データはこのブラウザ内に保存されます。右上の 👤 から Google でログインすると、サーバーにも保存され、ほかの端末でも使えます。</p>
   <form method="dialog"><button class="primary">閉じる</button></form>
@@ -273,9 +275,10 @@
 
 <script src="shogi.js?v=4"></script>
 <script src="problems-store.js?v=1"></script>
-<script src="app.js?v=9"></script>
-<script src="problem-editor.js?v=1"></script>
-<script src="tutorial.js?v=2"></script>
+<script src="default-files.js?v=1"></script>
+<script src="app.js?v=10"></script>
+<script src="problem-editor.js?v=2"></script>
+<script src="tutorial.js?v=3"></script>
 <script type="module" src="sync.js?v=3"></script>
 </body>
 </html>

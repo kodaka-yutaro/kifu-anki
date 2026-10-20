@@ -117,7 +117,7 @@
       });
       lastDestination = collectionId;
       dialog.close();
-      source.notice(`「${collection.title}」に次の一手問題を保存しました。「📂 一覧」から開いて解けます。`, "ok");
+      source.notice(`「${collection.title}」に次の一手問題を保存しました。「ファイル」から開いて解けます。`, "ok");
     } catch (e) { error(e.message); }
     finally { saving = false; $("btnSaveProblem").disabled = false; }
   }

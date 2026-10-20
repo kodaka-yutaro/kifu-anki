@@ -4,7 +4,7 @@
 const assert = require("node:assert/strict");
 const vm = require("node:vm");
 const Shogi = require("../shogi.js");
-const { harness, source, storedBooks, BOOKS, json } = require("./test-tutorial.js");
+const { harness, source, storedBooks, BOOKS, PROBLEMS, json } = require("./test-tutorial.js");
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
 // This lightweight DOM executes the actual page, storage and shogi modules.
@@ -104,7 +104,7 @@ function pageHarness(page, { data = new Map(), search = "" } = {}) {
     }
   };
   const context = vm.createContext({
-    Shogi, window, document, Blob, URLSearchParams, navigator: {},
+    Shogi, window, document, Blob, File, TextDecoder, URLSearchParams, navigator: {},
     location: { search, href: `${page}.html${search}` },
     URL: {
       createObjectURL: blob => { downloads.push(blob); return `blob:test-${downloads.length}`; },
@@ -124,6 +124,7 @@ function pageHarness(page, { data = new Map(), search = "" } = {}) {
     confirm: () => true, prompt: () => null, alert: text => { throw new Error(text); }
   });
   vm.runInContext(source("problems-store.js"), context, { filename: "problems-store.js" });
+  vm.runInContext(source("default-files.js"), context, { filename: "default-files.js" });
   vm.runInContext(source(`${page}.js`), context, { filename: `${page}.js` });
   return {
     get, data, context, window, downloads, store: window.KifuProblems,
@@ -146,7 +147,10 @@ function pageHarness(page, { data = new Map(), search = "" } = {}) {
   };
 }
 
-const initial = () => new Map([[BOOKS, JSON.stringify(storedBooks("元からある棋譜"))]]);
+const initial = () => new Map([
+  [BOOKS, JSON.stringify(storedBooks("元からある棋譜"))],
+  [PROBLEMS, JSON.stringify({ version: 1, collections: [] })]
+]);
 const fields = () => ({
   position: Shogi.initial(),
   choices: [{ from: [7, 7], to: [7, 6], promote: false }, { from: [2, 7], to: [2, 6], promote: false }],

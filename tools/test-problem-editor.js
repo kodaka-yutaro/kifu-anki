@@ -4,7 +4,7 @@
 const assert = require("node:assert/strict");
 const Shogi = require("../shogi.js");
 const lesson = require("../tutorial.js");
-const { harness, storedBooks, BOOKS, json } = require("./test-tutorial.js");
+const { harness, storedBooks, BOOKS, PROBLEMS, json } = require("./test-tutorial.js");
 
 const tests = [];
 const test = (name, check) => tests.push({ name, check });
@@ -12,7 +12,7 @@ const test = (name, check) => tests.push({ name, check });
 function setup({ empty = false } = {}) {
   const saved = storedBooks("復習に使う棋譜");
   if (empty) saved.books[0].root = Shogi.newNode(null);
-  const data = new Map([[BOOKS, JSON.stringify(saved)]]);
+  const data = new Map([[BOOKS, JSON.stringify(saved)], [PROBLEMS, JSON.stringify({ version: 1, collections: [] })]]);
   const h = harness({ data });
   h.runScript("problems-store.js");
   h.runScript("problem-editor.js");

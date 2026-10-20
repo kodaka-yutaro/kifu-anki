@@ -3,48 +3,80 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>棋譜・問題集のファイル一覧 - 棋譜暗記道場</title>
-<meta name="description" content="保存した棋譜と次の一手問題集を管理できます。問題集の新規作成、棋譜・問題集のバックアップと復元、定跡棋譜の読み込みができます。">
+<title>ファイル - 棋譜暗記道場</title>
+<meta name="description" content="棋譜ファイルと次の一手ブックを管理できます。KIF・KIFUファイルの読み込み、ブックの新規作成、バックアップと復元に対応しています。">
 <link rel="canonical" href="https://kifu.kdking-tools.com/library.html">
-<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="style.css?v=11">
 <link rel="stylesheet" href="problems.css?v=1">
+<link rel="stylesheet" href="library.css?v=1">
 </head>
 <body>
 <header class="site-header"><p class="site-name"><a href="index.html">棋譜暗記道場</a></p><div class="header-tools"><button id="btnAccount" class="round account" title="Google でログイン" hidden>👤</button></div></header>
 <main class="article library">
 <nav class="crumbs"><a href="index.html">トップ</a> › ファイル</nav>
-<h1>棋譜・問題集</h1>
+<div class="library-heading">
+  <div><h1>ファイル</h1><p>棋譜を開いて覚える。ブックを開いて解く。</p></div>
+  <button id="btnImportKifu" class="primary" type="button">棋譜を読み込む</button>
+  <input type="file" id="kifuFileInput" accept=".kif,.kifu,.txt" multiple hidden>
+</div>
 <p id="libraryStatus" class="message" role="status" aria-live="polite"></p>
 
-<h2>保存した棋譜</h2>
-<ul class="book-list" id="myBooks"></ul>
-<div class="collection-heading">
-  <h2>次の一手問題集</h2>
-  <button id="btnNewProblemCollection" class="primary" type="button">＋ 問題集を新規作成</button>
-</div>
-<ul class="book-list" id="myProblemCollections"></ul>
-<p class="note">棋譜で出題したい局面を表示し、「この局面の次の一手問題を作る」から問題集に追加できます。</p>
-<h2>バックアップ</h2>
-<p class="lib-actions">
-  <button id="btnBackup">すべてバックアップ</button>
-  <button id="btnRestore">バックアップから戻す</button>
-  <input type="file" id="restoreInput" hidden>
-</p>
-<p class="note">棋譜と問題集はこのブラウザの中に保存されます。Google でログインするとサーバーにも保存されます。「すべてバックアップ」では棋譜と問題集をまとめて保存でき、別の端末でも「バックアップから戻す」で読み込めます。</p>
+<section class="file-panel" aria-labelledby="kifuFilesTitle">
+  <div class="file-panel-heading">
+    <h2 id="kifuFilesTitle">棋譜ファイル <span id="kifuFileCount" class="file-count">0件</span></h2>
+    <button id="btnNewKifu" type="button">＋ 新規棋譜</button>
+  </div>
+  <div class="file-columns" aria-hidden="true"><span>名前</span><span>内容</span></div>
+  <ul class="book-list file-list" id="myBooks" aria-label="棋譜ファイル"></ul>
+  <p class="file-panel-note">KIF・KIFUファイルを複数まとめて読み込めます。</p>
+</section>
 
-<h2>定跡の棋譜から選ぶ</h2>
-<ul class="book-list" id="josekiList"></ul>
-<p class="note">選ぶと「保存した棋譜」に追加され、すぐに暗記を始められます。手順の解説は<a href="joseki/">定跡解説</a>にあります。</p>
+<section class="file-panel" aria-labelledby="problemBooksTitle">
+  <div class="file-panel-heading">
+    <h2 id="problemBooksTitle">次の一手ブック <span id="problemBookCount" class="file-count">0冊</span></h2>
+    <button id="btnNewProblemCollection" type="button">＋ 新規ブック</button>
+  </div>
+  <div class="file-columns" aria-hidden="true"><span>名前</span><span>内容</span></div>
+  <ul class="book-list file-list" id="myProblemCollections" aria-label="次の一手ブック"></ul>
+  <p class="file-panel-note">棋譜の局面から「次の一手問題を作る」で、ブックに問題を追加できます。</p>
+</section>
+
+<section class="library-support" aria-labelledby="backupTitle">
+  <h2 id="backupTitle">バックアップ</h2>
+  <p class="lib-actions">
+    <button id="btnBackup" type="button">すべてバックアップ</button>
+    <button id="btnRestore" type="button">バックアップから戻す</button>
+    <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+  </p>
+  <p class="note">棋譜とブックをまとめて保存・復元できます。Google でログインすると、ほかの端末でも使えます。</p>
+</section>
+<details class="library-catalog">
+  <summary>定跡の棋譜から選ぶ</summary>
+  <ul class="book-list" id="josekiList"></ul>
+  <p class="note">選ぶと棋譜ファイルに追加されます。手順の解説は<a href="joseki/">定跡解説</a>にあります。</p>
+</details>
 </main>
 <div class="ad-slot" aria-label="広告">広告枠（準備中）</div>
 <footer class="site-footer">
   <a href="index.html">棋譜暗記ツール</a> ・ <a href="joseki/">定跡解説の一覧</a> ・ <a href="oboekata.html">棋譜の覚え方</a> ・ <a href="about.html">運営者情報・お問い合わせ</a> ・ <a href="privacy.html">プライバシーポリシー</a>
 </footer>
+<dialog id="newKifuDialog" class="dialog problem-form-dialog" aria-labelledby="newKifuTitle">
+  <h2 id="newKifuTitle">棋譜ファイルを新規作成</h2>
+  <form id="newKifuForm">
+    <label for="newKifuName">ファイル名</label>
+    <input id="newKifuName" type="text" required maxlength="120" autocomplete="off" placeholder="例：四間飛車の定跡">
+    <p id="newKifuError" class="form-error" role="alert"></p>
+    <div class="problem-form-actions">
+      <button id="btnCancelNewKifu" type="button">キャンセル</button>
+      <button class="primary" type="submit">作成して開く</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="newProblemCollectionDialog" class="dialog problem-form-dialog" aria-labelledby="newProblemCollectionTitle">
-  <h2 id="newProblemCollectionTitle">次の一手問題集を新規作成</h2>
+  <h2 id="newProblemCollectionTitle">次の一手ブックを新規作成</h2>
   <form id="newProblemCollectionForm">
-    <label for="newProblemCollectionName">問題集の名前</label>
-    <input id="newProblemCollectionName" type="text" required autocomplete="off" placeholder="例：四間飛車で覚えたい局面">
+    <label for="newProblemCollectionName">ブックの名前</label>
+    <input id="newProblemCollectionName" type="text" required maxlength="120" autocomplete="off" placeholder="例：四間飛車で覚えたい局面">
     <p id="newProblemCollectionError" class="form-error" role="alert"></p>
     <div class="problem-form-actions">
       <button id="btnCancelNewProblemCollection" type="button">キャンセル</button>
@@ -68,7 +100,8 @@
 </dialog>
 <script src="shogi.js?v=4"></script>
 <script src="problems-store.js?v=1"></script>
-<script src="library.js?v=3"></script>
+<script src="default-files.js?v=1"></script>
+<script src="library.js?v=4"></script>
 <script type="module" src="sync.js?v=3"></script>
 </body>
 </html>

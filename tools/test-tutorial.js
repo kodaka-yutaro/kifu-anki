@@ -10,6 +10,7 @@ const Shogi = require("../shogi.js");
 const lesson = require("../tutorial.js");
 const source = name => fs.readFileSync(path.join(__dirname, "..", name), "utf8");
 const BOOKS = "kifu-anki-books-v1";
+const PROBLEMS = "kifu-anki-problems-v1";
 const SETTINGS = "kifu-anki-settings-v1";
 const json = value => JSON.parse(JSON.stringify(value));
 const storedBooks = (title = "既存の定跡") => ({
@@ -250,18 +251,29 @@ function harness({ data = new Map(), blocked = false, controller = false, search
     Option: function (text, value) { this.text = text; this.value = value; },
     localStorage: {
       getItem(key) { if (blocked) throw new Error("storage unavailable"); return data.get(key) ?? null; },
-      setItem(key, value) { if (blocked) throw new Error("storage unavailable"); data.set(key, value); writes.push(key); }
+      setItem(key, value) { if (blocked) throw new Error("storage unavailable"); data.set(key, value); writes.push(key); },
+      removeItem(key) { if (blocked) throw new Error("storage unavailable"); data.delete(key); }
     },
     setTimeout(callback, delay) { const id = ++timerId; timers.set(id, { callback, delay }); return id; },
     clearTimeout(id) { timers.delete(id); },
     fetch: () => new Promise(() => {}),
     alert(message) { throw new Error(message); }, prompt: () => null, confirm: () => true
   });
-  vm.runInContext(source("app.js"), context, { filename: "app.js" });
-  if (controller) vm.runInContext(source("tutorial.js"), context, { filename: "tutorial.js" });
+  const loaded = new Set();
+  function runScript(name) {
+    if (loaded.has(name)) return;
+    const result = vm.runInContext(source(name), context, { filename: name });
+    loaded.add(name);
+    return result;
+  }
+  runScript("problems-store.js");
+  runScript("default-files.js");
+  runScript("app.js");
+  if (controller) runScript("tutorial.js");
+  const startupWrites = writes.splice(0);
   return {
-    app: window.KifuTutorialApp, window, get, data, timers, frames, writes, context,
-    runScript(name) { return vm.runInContext(source(name), context, { filename: name }); },
+    app: window.KifuTutorialApp, window, get, data, timers, frames, writes, startupWrites, context,
+    runScript,
     blockStorage(value = true) { blocked = value; },
     get saves() { return saves; },
     get focused() { return document.activeElement; },
@@ -329,6 +341,7 @@ test("photo lettering keeps captured pieces, promoted moves, and KIF data intact
   const kif = "手合割：平手\n手数----指手---------消費時間--\n1 ７六歩(77)\n2 ３四歩(33)\n3 ２二角成(88)\n";
   const data = new Map([[SETTINGS, JSON.stringify({ board: "felt", pieces: "photo" })]]);
   const h = harness({ data });
+  const before = [...data];
   h.app.begin("表示確認", kif);
   h.app.sample(kif, { depth: 3 });
   const promoted = h.get("board").children.find(el => +el.dataset.file === 2 && +el.dataset.rank === 2);
@@ -340,15 +353,15 @@ test("photo lettering keeps captured pieces, promoted moves, and KIF data intact
   assert.ok(captured.innerHTML.includes("角\n行"));
   assert.deepEqual(json(h.app.state().root), Shogi.parseKIF(kif));
   h.app.finish();
-  assert.equal(data.has(BOOKS), false);
+  assert.deepEqual([...data], before);
 });
 
 test("tutorial moves, comments and settings leave saved books and sync callbacks untouched", () => {
   const data = new Map([[BOOKS, JSON.stringify(storedBooks())], [SETTINGS, JSON.stringify({
     board: "dark", pieces: "mincho", arrows: false, hideComments: true
   })]]);
-  const before = [...data];
   const h = harness({ data });
+  const before = [...data];
   h.get("btnNext").click(); h.get("btnNext").click();
   const original = h.app.state();
   assert.equal(h.app.begin(lesson.title, lesson.mainKif), true);
@@ -418,7 +431,7 @@ for (const notification of ["cloud", "other tab"]) {
     assert.equal(h.app.state().root, tutorialRoot);
     h.app.finish();
     assert.deepEqual(json(h.app.state().root), incoming.books[0].root);
-    assert.equal(h.get("bookSelect").children[0].text, incoming.books[0].title);
+    assert.equal(h.get("currentBookTitle").textContent, incoming.books[0].title);
     assert.equal(h.saves, 0);
     assert.equal(h.writes.length, 0);
   });
@@ -480,8 +493,9 @@ test("an import from an earlier tutorial step cannot change a replacement sample
   }
 });
 
-test("a tutorial starts only from help and can be replayed without writing history or a demo book", () => {
+test("a tutorial starts only from help and can be replayed without adding tutorial files or history", () => {
   const h = harness({ controller: true });
+  const before = [...h.data];
   const importHandler = h.get("btnImport").onclick;
   assert.equal(h.app.state().active, false);
   assert.equal(h.get("tutorialPanel").hidden, true);
@@ -499,7 +513,7 @@ test("a tutorial starts only from help and can be replayed without writing histo
   h.get("fileInput").onclick = () => filePickerOpened++;
   h.get("btnImport").click();
   assert.equal(filePickerOpened, 1, "normal import returns to the file picker after exit");
-  assert.equal(h.data.size, 0);
+  assert.deepEqual([...h.data], before);
   assert.equal(h.writes.length, 0);
   assert.equal(h.get("btnNew").disabled, false);
   assert.equal(h.get("btnLibrary").getAttribute("aria-disabled"), null);
@@ -686,4 +700,4 @@ if (require.main === module) (async () => {
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });
 
-module.exports = { harness, source, storedBooks, BOOKS, SETTINGS, json };
+module.exports = { harness, source, storedBooks, BOOKS, PROBLEMS, SETTINGS, json };
