@@ -16,6 +16,11 @@ html.no-arrows .arrow { display:none; }
 main { max-width:960px; margin:0 auto; padding:0 16px; }
 .bar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:10px 0; }
 .bar select { flex:1; min-width:160px; }
+.board-file-heading { display:flex; align-items:center; gap:14px; margin:16px 0 8px; min-width:0; }
+.file-return { display:inline-flex; align-items:center; min-height:40px; color:var(--accent); font-size:.85rem; font-weight:bold; white-space:nowrap; text-decoration:none; }
+.file-return:hover { text-decoration:underline; }
+.file-return:focus-visible { outline:3px solid #1976d2; outline-offset:3px; border-radius:4px; }
+.current-book-title { min-width:0; margin:0; padding-left:14px; border-left:1px solid var(--border); color:var(--text); font-size:1.02rem; line-height:1.6; font-weight:600; overflow-wrap:anywhere; }
 .modes { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:8px 0 12px; }
 .modes-label { margin-left:10px; color:var(--muted); font-size:.85rem; }
 

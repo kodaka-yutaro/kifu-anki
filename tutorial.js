@@ -327,7 +327,7 @@
     if (active) { focusHeading(index === steps.length ? "tutorialDone" : "tutorialPanel"); return; }
     if (app.state().linkedKifPending) return;
     controls = new Map();
-    const ids = ["bookSelect", "btnNew", "btnRename", "btnDelete", "btnImport", "btnExport", "btnCut", "btnFirst", "btnPrev", "btnNext", "btnLast", "btnAnswer", "btnContinue", "btnSettings", "btnAccount", "commentCover"];
+    const ids = ["btnNew", "btnRename", "btnDelete", "btnImport", "btnExport", "btnCut", "btnFirst", "btnPrev", "btnNext", "btnLast", "btnAnswer", "btnContinue", "btnSettings", "btnAccount", "commentCover"];
     ids.map($).concat([...document.querySelectorAll(".modes button")]).filter(Boolean).forEach(el => controls.set(el, el.disabled));
     active = true;
     preparing = true;

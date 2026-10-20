@@ -2,6 +2,7 @@
 const $ = id => document.getElementById(id);
 const STORE_KEY = "kifu-anki-books-v1";
 const P = KifuProblems;
+let importingKifu = false;
 
 function validBooks(books) {
   if (!Array.isArray(books)) return false;
@@ -53,23 +54,33 @@ function stats(root) {
   return { depth, leaves };
 }
 
-function item({ title, sub, href, onOpen, onDelete }) {
+function item({ title, sub, href, onOpen, onDelete, kind }) {
   const li = document.createElement("li");
   const a = document.createElement("a");
   a.href = href || "#";
   const name = document.createElement("b"), detail = document.createElement("span");
   name.textContent = title;
   detail.textContent = sub;
-  a.appendChild(name); a.appendChild(detail);
+  if (kind) {
+    const icon = document.createElement("span"), filename = document.createElement("span"), type = document.createElement("span");
+    icon.className = "file-icon" + (kind === "book" ? " file-icon-book" : "");
+    icon.setAttribute("aria-hidden", "true");
+    filename.className = "file-name";
+    type.className = "file-kind";
+    type.textContent = kind === "book" ? "次の一手ブック" : "棋譜ファイル";
+    detail.className = "file-detail";
+    filename.appendChild(name); filename.appendChild(type);
+    a.appendChild(icon); a.appendChild(filename); a.appendChild(detail);
+  } else { a.appendChild(name); a.appendChild(detail); }
   if (onOpen) a.onclick = e => { e.preventDefault(); onOpen(); };
   li.appendChild(a);
   if (onDelete) {
     const del = document.createElement("button");
     del.type = "button";
-    del.className = "icon";
+    del.className = kind ? "icon file-delete" : "icon";
     del.title = "削除";
     del.setAttribute("aria-label", `「${title}」を削除`);
-    del.textContent = "🗑";
+    del.textContent = kind ? "×" : "🗑";
     del.onclick = onDelete;
     li.appendChild(del);
   }
@@ -88,15 +99,17 @@ function renderMine() {
   ul.innerHTML = "";
   try {
     const data = loadData();
+    $("kifuFileCount").textContent = `${data.books.length}件`;
     if (!data.books.length) {
-      ul.innerHTML = '<li class="empty">まだ棋譜がありません。下の定跡から選ぶか、<a href="index.html">暗記ツール</a>の「読込」でKIFファイルを読み込んでください。</li>';
-      return;
+      return emptyItem(ul, "まだ棋譜がありません。「棋譜を読み込む」から追加するか、新しい棋譜を作成してください。");
     }
     data.books.forEach((b, i) => {
       const { depth, leaves } = stats(b.root);
       ul.appendChild(item({
         title: b.title,
         sub: depth ? `${depth}手・変化${leaves}通り` : "まだ手がありません",
+        kind: "kifu",
+        href: "index.html",
         onOpen: () => {
           data.current = i;
           if (saveData(data)) location.href = "index.html";
@@ -110,7 +123,7 @@ function renderMine() {
         }
       }));
     });
-  } catch (e) { emptyItem(ul, e.message); }
+  } catch (e) { $("kifuFileCount").textContent = "—"; emptyItem(ul, e.message); }
 }
 
 function renderProblemCollections() {
@@ -118,10 +131,12 @@ function renderProblemCollections() {
   ul.innerHTML = "";
   try {
     const collections = P.load();
-    if (!collections.length) return emptyItem(ul, "まだ問題集がありません。「問題集を新規作成」から保存先を作れます。");
+    $("problemBookCount").textContent = `${collections.length}冊`;
+    if (!collections.length) return emptyItem(ul, "まだブックがありません。「新規ブック」から問題の保存先を作れます。");
     collections.forEach(c => ul.appendChild(item({
       title: c.title,
-      sub: `${c.problems.length}問・次の一手問題集`,
+      sub: `${c.problems.length}問`,
+      kind: "book",
       href: `problems.html?id=${encodeURIComponent(c.id)}`,
       onDelete: () => {
         if (!confirm(`「${c.title}」と中の${c.problems.length}問を削除しますか？ 元の棋譜は残ります。`)) return;
@@ -129,7 +144,66 @@ function renderProblemCollections() {
         catch (e) { libraryStatus(e.message, true); }
       }
     })));
-  } catch (e) { emptyItem(ul, e.message); }
+  } catch (e) { $("problemBookCount").textContent = "—"; emptyItem(ul, e.message); }
+}
+
+function decodeKifu(buffer) {
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(buffer); }
+  catch (e) { return new TextDecoder("shift_jis", { fatal: true }).decode(buffer); }
+}
+
+function parseKifuFile(text, filename) {
+  text = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  const hasMoves = /^[\t 　]*\d+[\t 　]+\S/m.test(text);
+  const hasHeader = /^[\t 　]*(?:手合割[：:]|手数[-ー 　]*指手)/m.test(text);
+  if (!hasMoves && !hasHeader) throw new Error("KIF・KIFU形式の棋譜が見つかりません。");
+  const root = Shogi.parseKIF(text);
+  const header = text.match(/^[\t 　]*(?:表題|棋戦)[：:](.+)$/m);
+  const title = (header && header[1].trim()) || filename.replace(/\.(kifu?|txt)$/i, "").trim() || "読み込んだ棋譜";
+  const parsed = { title, root };
+  if (!validBooks([parsed])) throw new Error("棋譜の指し手を読み込めませんでした。");
+  return parsed;
+}
+
+function uniqueKifuTitle(title, books) {
+  let name = title;
+  for (let i = 2; books.some(book => book.title === name); i++) name = `${title}（${i}）`;
+  return name;
+}
+
+async function importKifuFiles(files) {
+  if (importingKifu || !files.length) return;
+  importingKifu = true;
+  $("btnImportKifu").disabled = true;
+  $("btnImportKifu").textContent = "読み込み中…";
+  $("kifuFileInput").disabled = true;
+  const parsed = [], failures = [];
+  try {
+    for (const file of files) {
+      try { parsed.push(parseKifuFile(decodeKifu(await file.arrayBuffer()), file.name)); }
+      catch (e) { failures.push(`「${file.name}」：${e.message || "読み込めませんでした。"}`); }
+    }
+    let message;
+    if (parsed.length) {
+      const data = loadData();
+      for (const book of parsed) {
+        book.title = uniqueKifuTitle(book.title, data.books);
+        data.books.push(book);
+      }
+      if (!saveData(data)) throw new Error(`読み込んだ${parsed.length}件を保存できませんでした。ブラウザの保存設定・空き容量を確認して、もう一度読み込んでください。`);
+      renderMine();
+      message = `棋譜を${parsed.length}件読み込みました。一覧から開けます。`;
+    } else message = "棋譜を読み込めませんでした。";
+    if (failures.length) message += `\n読み込めなかったファイル：${failures.length}件\n` + failures.join("\n");
+    libraryStatus(message, failures.length > 0);
+  } catch (e) {
+    libraryStatus(e.message + (failures.length ? "\n" + failures.join("\n") : ""), true);
+  } finally {
+    importingKifu = false;
+    $("btnImportKifu").disabled = false;
+    $("btnImportKifu").textContent = "棋譜を読み込む";
+    $("kifuFileInput").disabled = false;
+  }
 }
 
 async function renderJoseki() {
@@ -210,6 +284,32 @@ function mergeTree(dst, src) {
 
 function renderAll() { renderMine(); renderProblemCollections(); }
 
+$("btnImportKifu").onclick = () => $("kifuFileInput").click();
+$("kifuFileInput").onchange = event => {
+  const files = [...event.target.files];
+  event.target.value = "";
+  return importKifuFiles(files);
+};
+$("btnNewKifu").onclick = () => {
+  $("newKifuName").value = "";
+  $("newKifuError").textContent = "";
+  $("newKifuDialog").showModal();
+  $("newKifuName").focus();
+};
+$("btnCancelNewKifu").onclick = () => $("newKifuDialog").close();
+$("newKifuForm").onsubmit = event => {
+  event.preventDefault();
+  try {
+    const title = $("newKifuName").value.trim();
+    if (!title) throw new Error("ファイル名を入力してください。");
+    const data = loadData();
+    data.books.push({ title: uniqueKifuTitle(title, data.books), root: Shogi.newNode(null) });
+    data.current = data.books.length - 1;
+    if (!saveData(data)) throw new Error("棋譜を保存できませんでした。ブラウザの保存設定・空き容量を確認してください。");
+    $("newKifuDialog").close();
+    location.href = "index.html";
+  } catch (e) { $("newKifuError").textContent = e.message; }
+};
 $("btnNewProblemCollection").onclick = () => {
   $("newProblemCollectionName").value = "";
   $("newProblemCollectionError").textContent = "";
@@ -229,6 +329,8 @@ $("newProblemCollectionForm").onsubmit = e => {
 $("btnBackup").onclick = backup;
 $("btnRestore").onclick = () => $("restoreInput").click();
 $("restoreInput").onchange = e => { if (e.target.files[0]) restore(e.target.files[0]); e.target.value = ""; };
+try { if (window.KifuDefaults) window.KifuDefaults.ensure(); }
+catch (e) { libraryStatus(e.message || "初期ファイルを保存できませんでした。", true); }
 renderAll();
 renderJoseki();
 window.kifuReload = renderAll;
