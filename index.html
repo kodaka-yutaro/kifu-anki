@@ -16,12 +16,13 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"棋譜暗記道場","alternateName":"棋譜暗記サイト","url":"https://kifu.kdking-tools.com/","applicationCategory":"GameApplication","operatingSystem":"Web","inLanguage":"ja","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"description":"将棋の棋譜や定跡をツリーで管理し、盤上で指して暗記できる無料の棋譜暗記サイト。KIFファイルの読み込み・書き出しに対応。"}
 </script>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 <header class="site-header">
   <h1>棋譜暗記道場<span class="tagline">将棋の棋譜暗記サイト</span></h1>
   <div class="header-tools">
+    <button id="btnAccount" class="round account" title="Google でログイン" hidden>👤</button>
     <button id="btnSettings" class="round" title="設定" aria-label="設定">⚙</button>
     <button id="btnHelp" class="round" title="使い方" aria-label="使い方">?</button>
   </div>
@@ -126,7 +127,7 @@
     <li><b>書出</b>：定跡を変化・コメントごとKIFファイルとして保存します。</li>
     <li><b>📂 一覧</b>：保存した棋譜や定跡の棋譜から、暗記する棋譜を選べます。棋譜のバックアップと復元もここからできます。</li>
   </ul>
-  <p class="note">データはこのブラウザ内に保存されます。別の端末へ移すときはKIFで書き出してください。</p>
+  <p class="note">データはこのブラウザ内に保存されます。右上の 👤 から Google でログインすると、サーバーにも保存され、ほかの端末でも使えます。</p>
   <form method="dialog"><button class="primary">閉じる</button></form>
 </dialog>
 
@@ -152,6 +153,21 @@
   <form method="dialog"><button class="primary">閉じる</button></form>
 </dialog>
 
+<dialog id="accountDialog" class="dialog small">
+  <h2>アカウント</h2>
+  <div id="accountIn">
+    <p class="plain">Google でログインすると、棋譜がサーバーにも保存されます。ブラウザのデータが消えても残り、ほかの端末でも同じ棋譜を使えます。</p>
+    <p class="row"><button id="btnSignIn" class="primary">Google でログイン</button></p>
+  </div>
+  <div id="accountOut" hidden>
+    <p class="plain" id="accountName"></p>
+    <p class="plain">棋譜は自動でサーバーに保存されます。</p>
+    <p class="row"><button id="btnSignOut">ログアウト</button></p>
+  </div>
+  <p class="note" id="accountStatus"></p>
+  <form method="dialog"><button>閉じる</button></form>
+</dialog>
+
 <dialog id="promoteDialog" class="dialog small">
   <p>成りますか？</p>
   <form method="dialog" class="row">
@@ -169,6 +185,7 @@
 </dialog>
 
 <script src="shogi.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
+<script type="module" src="sync.js?v=1"></script>
 </body>
 </html>

@@ -12,6 +12,7 @@ function loadData() {
 function saveData(data) {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
   catch (e) { alert("保存できませんでした。ブラウザの設定を確認してください。"); }
+  if (window.onKifuSaved) window.onKifuSaved();   // ログイン中ならサーバーにも保存（sync.js）
 }
 
 // 本線の手数と変化（末端）の数
@@ -135,5 +136,7 @@ $("btnRestore").onclick = () => $("restoreInput").click();
 $("restoreInput").onchange = e => { if (e.target.files[0]) restore(e.target.files[0]); e.target.value = ""; };
 renderMine();
 renderJoseki();
+// ログインしてサーバーの棋譜を読み込んだとき（sync.js から呼ばれる）
+window.kifuReload = renderMine;
 // 保存した棋譜をブラウザが勝手に消さないよう、永続化をお願いしておく
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist();

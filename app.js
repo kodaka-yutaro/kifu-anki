@@ -62,6 +62,7 @@ function save() {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify({ books, current: books.indexOf(book) }));
   } catch (e) { /* 保存できない環境でも動作は続ける */ }
+  if (window.onKifuSaved) window.onKifuSaved();   // ログイン中ならサーバーにも保存（sync.js）
 }
 function load() {
   try {
@@ -579,6 +580,13 @@ function init() {
   // 保存した棋譜をブラウザが勝手に消さないよう、永続化をお願いしておく
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
 }
+
+// ログインしてサーバーの棋譜を読み込んだとき（sync.js から呼ばれる）
+window.kifuReload = () => {
+  load();
+  refreshBooks();
+  setMode(mode);
+};
 
 // 定跡解説ページの「暗記する」ボタン（?kif=joseki/xxx.kif）から開いたとき
 async function openLinkedKif() {

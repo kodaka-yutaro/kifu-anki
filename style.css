@@ -176,3 +176,8 @@ a.button:hover { border-color:var(--accent); }
 .lib-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .library .note { color:var(--muted); font-size:.85rem; }
 .bar button, .bar a.button { white-space:nowrap; }
+.round.account.signed-in { font-size:.95rem; }
+.round.account.signed-in { background:var(--accent); color:#fff; border-color:var(--accent); }
+.dialog.small p.plain { font-weight:normal; margin:0 0 10px; line-height:1.6; }
+.dialog p.row { margin:0 0 6px; justify-content:flex-start; }
+@media (max-width:480px) { .site-header { justify-content:flex-start; } }

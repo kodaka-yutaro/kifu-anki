@@ -6,10 +6,10 @@
 <title>棋譜を選ぶ｜保存した棋譜と定跡の一覧 - 棋譜暗記道場</title>
 <meta name="description" content="棋譜暗記道場に保存した棋譜の一覧と、矢倉・角換わり・四間飛車などの定跡棋譜から、暗記する棋譜を選べます。棋譜のバックアップと復元もここからできます。">
 <link rel="canonical" href="https://kifu.kdking-tools.com/library.html">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
-<header class="site-header"><p class="site-name"><a href="index.html">棋譜暗記道場</a></p></header>
+<header class="site-header"><p class="site-name"><a href="index.html">棋譜暗記道場</a></p><div class="header-tools"><button id="btnAccount" class="round account" title="Google でログイン" hidden>👤</button></div></header>
 <main class="article library">
 <nav class="crumbs"><a href="index.html">トップ</a> › 棋譜を選ぶ</nav>
 <h1>棋譜を選ぶ</h1>
@@ -21,7 +21,7 @@
   <button id="btnRestore">バックアップから戻す</button>
   <input type="file" id="restoreInput" hidden>
 </p>
-<p class="note">棋譜はこのブラウザの中に保存されます。ブラウザのデータを消すと棋譜も消えるので、ときどき「すべてバックアップ」でファイルに保存しておくと安心です。別の端末へ移すときも、このファイルを「バックアップから戻す」で読み込めます。</p>
+<p class="note">棋譜はこのブラウザの中に保存されます。ブラウザのデータを消すと棋譜も消えるので、右上の 👤 から Google でログインするか、ときどき「すべてバックアップ」でファイルに保存しておくと安心です。別の端末へ移すときも、このファイルを「バックアップから戻す」で読み込めます。</p>
 
 <h2>定跡の棋譜から選ぶ</h2>
 <ul class="book-list" id="josekiList"></ul>
@@ -31,7 +31,22 @@
 <footer class="site-footer">
   <a href="index.html">棋譜暗記ツール</a> ・ <a href="joseki/">定跡解説の一覧</a> ・ <a href="oboekata.html">棋譜の覚え方</a> ・ <a href="about.html">運営者情報・お問い合わせ</a> ・ <a href="privacy.html">プライバシーポリシー</a>
 </footer>
+<dialog id="accountDialog" class="dialog small">
+  <h2>アカウント</h2>
+  <div id="accountIn">
+    <p class="plain">Google でログインすると、棋譜がサーバーにも保存されます。ブラウザのデータが消えても残り、ほかの端末でも同じ棋譜を使えます。</p>
+    <p class="row"><button id="btnSignIn" class="primary">Google でログイン</button></p>
+  </div>
+  <div id="accountOut" hidden>
+    <p class="plain" id="accountName"></p>
+    <p class="plain">棋譜は自動でサーバーに保存されます。</p>
+    <p class="row"><button id="btnSignOut">ログアウト</button></p>
+  </div>
+  <p class="note" id="accountStatus"></p>
+  <form method="dialog"><button>閉じる</button></form>
+</dialog>
 <script src="shogi.js?v=4"></script>
-<script src="library.js?v=1"></script>
+<script src="library.js?v=2"></script>
+<script type="module" src="sync.js?v=1"></script>
 </body>
 </html>
