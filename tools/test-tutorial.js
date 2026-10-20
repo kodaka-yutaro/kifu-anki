@@ -11,6 +11,7 @@ const lesson = require("../tutorial.js");
 const source = name => fs.readFileSync(path.join(__dirname, "..", name), "utf8");
 const BOOKS = "kifu-anki-books-v1";
 const PROBLEMS = "kifu-anki-problems-v1";
+const DEFAULTS = "kifu-anki-default-files-v1";
 const SETTINGS = "kifu-anki-settings-v1";
 const json = value => JSON.parse(JSON.stringify(value));
 const storedBooks = (title = "既存の定跡") => ({
@@ -700,4 +701,4 @@ if (require.main === module) (async () => {
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });
 
-module.exports = { harness, source, storedBooks, BOOKS, PROBLEMS, SETTINGS, json };
+module.exports = { harness, source, storedBooks, BOOKS, PROBLEMS, DEFAULTS, SETTINGS, json };

@@ -4,7 +4,7 @@
 const assert = require("node:assert/strict");
 const vm = require("node:vm");
 const Shogi = require("../shogi.js");
-const { harness, source, storedBooks, BOOKS, PROBLEMS, json } = require("./test-tutorial.js");
+const { harness, source, storedBooks, BOOKS, PROBLEMS, DEFAULTS, json } = require("./test-tutorial.js");
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
 // This lightweight DOM executes the actual page, storage and shogi modules.
@@ -149,7 +149,8 @@ function pageHarness(page, { data = new Map(), search = "" } = {}) {
 
 const initial = () => new Map([
   [BOOKS, JSON.stringify(storedBooks("元からある棋譜"))],
-  [PROBLEMS, JSON.stringify({ version: 1, collections: [] })]
+  [PROBLEMS, JSON.stringify({ version: 1, collections: [] })],
+  [DEFAULTS, JSON.stringify({ version: 1, books: "ready", problemCollections: "ready" })]
 ]);
 const fields = () => ({
   position: Shogi.initial(),
