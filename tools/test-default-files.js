@@ -7,6 +7,7 @@ const Problems = require("../problems-store.js");
 const Defaults = require("../default-files.js");
 const BOOKS_KEY = "kifu-anki-books-v1";
 const SYNC_KEY = "kifu-anki-sync-v1";
+const DEFAULTS_KEY = "kifu-anki-default-files-v1";
 const data = new Map();
 let writes = [], notifications = 0, blockedRead = false, blockedWrite = null, checks = 0;
 global.localStorage = {
@@ -38,7 +39,24 @@ test("a first visit persists exactly one sample kifu and one playable three-ques
   assert.equal(collections.length, 1);
   assert.equal(collections[0].problems.length, 3);
   assert.ok(Problems.validateCollections(collections));
+  assert.equal(Defaults.KEY, DEFAULTS_KEY);
+  assert.deepEqual(Defaults.pending(), { books: true, problemCollections: true });
   assert.equal(notifications, 0);
+});
+
+test("legacy empty saved lists receive their missing samples once without marking user edits pending", () => {
+  data.set(BOOKS_KEY, JSON.stringify({ books: [], current: 0 }));
+  data.set(Problems.KEY, JSON.stringify({ version: 1, collections: [] }));
+  const metadata = JSON.stringify({ uid: "existing-account", pending: false, revision: 7 });
+  data.set(SYNC_KEY, metadata);
+  assert.deepEqual(Defaults.ensure(), { books: true, problemCollections: true });
+  assert.equal(books().length, 1);
+  assert.equal(Problems.load().length, 1);
+  assert.equal(data.get(SYNC_KEY), metadata);
+  assert.equal(notifications, 0);
+  const before = new Map(data);
+  assert.deepEqual(Defaults.ensure(), { books: false, problemCollections: false });
+  assert.deepEqual(data, before);
 });
 
 test("reopening either page neither duplicates nor rewrites the samples", () => {
@@ -67,9 +85,34 @@ test("existing user files and pending synchronization metadata remain byte-for-b
   data.set(SYNC_KEY, JSON.stringify({ uid: "existing-account", pending: false, revision: 5 }));
   const before = new Map(data);
   Defaults.ensure();
-  assert.deepEqual(data, before);
-  assert.equal(writes.length, 0);
+  for (const [key, value] of before) assert.equal(data.get(key), value);
+  assert.ok(writes.every(key => key === DEFAULTS_KEY), "only the initialization receipt may be written");
+  assert.deepEqual(Defaults.pending(), { books: false, problemCollections: false });
   assert.equal(notifications, 0);
+});
+
+test("samples saved by the previous version are recognized without being duplicated or rewritten", () => {
+  data.set(BOOKS_KEY, JSON.stringify({ books: [Defaults.sampleBook()], current: 0 }));
+  data.set(Problems.KEY, JSON.stringify({ version: 1, collections: [Defaults.sampleCollection()] }));
+  const before = new Map(data);
+  assert.deepEqual(Defaults.ensure(), { books: false, problemCollections: false });
+  for (const [key, value] of before) assert.equal(data.get(key), value);
+  assert.deepEqual(Defaults.pending(), { books: true, problemCollections: true });
+  assert.ok(writes.every(key => key === DEFAULTS_KEY));
+  assert.equal(notifications, 0);
+});
+
+test("a successfully synchronized sample can later be deleted without being regenerated", () => {
+  Defaults.ensure();
+  Defaults.synced();
+  assert.deepEqual(Defaults.pending(), { books: false, problemCollections: false });
+  Problems.removeCollection(Problems.load()[0].id);
+  data.set(BOOKS_KEY, JSON.stringify({ books: [], current: 0 }));
+  const before = new Map(data), beforeWrites = writes.length;
+  assert.deepEqual(Defaults.ensure(), { books: false, problemCollections: false });
+  Defaults.synced();
+  assert.deepEqual(data, before);
+  assert.equal(writes.length, beforeWrites);
 });
 
 test("a missing problem store is initialized without changing existing kifu or cloud state", () => {
@@ -92,13 +135,23 @@ test("a missing kifu store is initialized without adding to an existing problem 
 });
 
 test("corrupt or empty-string saved values are never replaced by samples", () => {
-  for (const value of ["{broken", "", "null"]) {
+  for (const value of ["{broken", "", "null", "{}", '{"books":"bad","collections":[],"version":2}']) {
     data.set(BOOKS_KEY, value); data.set(Problems.KEY, value);
     Defaults.ensure();
     assert.equal(data.get(BOOKS_KEY), value);
     assert.equal(data.get(Problems.KEY), value);
   }
   assert.equal(writes.length, 0);
+});
+
+test("one corrupt store does not block the other empty store from receiving its sample", () => {
+  const corrupt = "{broken";
+  data.set(BOOKS_KEY, corrupt);
+  data.set(Problems.KEY, JSON.stringify({ version: 1, collections: [] }));
+  assert.deepEqual(Defaults.ensure(), { books: false, problemCollections: true });
+  assert.equal(data.get(BOOKS_KEY), corrupt);
+  assert.equal(Problems.load().length, 1);
+  assert.deepEqual(Defaults.pending(), { books: false, problemCollections: true });
 });
 
 test("unavailable storage and failed kifu writes report an error without creating either file", () => {
@@ -121,6 +174,20 @@ test("a failed second write can be retried without duplicating the already saved
   assert.deepEqual(Defaults.ensure(), { books: false, problemCollections: true });
   assert.equal(data.get(BOOKS_KEY), saved);
   assert.equal(Problems.load().length, 1);
+  assert.equal(writes.filter(key => key === BOOKS_KEY).length, 1);
+  assert.equal(notifications, 0);
+});
+
+test("a failed receipt write can be retried without duplicating or losing the saved sample", () => {
+  blockedWrite = DEFAULTS_KEY;
+  assert.throws(() => Defaults.ensure());
+  assert.equal(books().length, 1);
+  const saved = data.get(BOOKS_KEY);
+  blockedWrite = null;
+  Defaults.ensure();
+  assert.equal(data.get(BOOKS_KEY), saved);
+  assert.equal(Problems.load().length, 1);
+  assert.deepEqual(Defaults.pending(), { books: true, problemCollections: true });
   assert.equal(writes.filter(key => key === BOOKS_KEY).length, 1);
   assert.equal(notifications, 0);
 });

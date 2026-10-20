@@ -22,8 +22,8 @@ const remoteData = (books, problemCollections) => ({
   ...(problemCollections === undefined ? {} : { problemCollections: JSON.stringify(problemCollections) })
 });
 
-function setup({ localBooks = [book("ローカル棋譜")], localCollections = [collection("local")], metadata = {}, read, write } = {}) {
-  const data = new Map([
+function setup({ localBooks = [book("ローカル棋譜")], localCollections = [collection("local")], metadata = {}, data: savedData, defaults = false, read, write } = {}) {
+  const data = savedData || new Map([
     [BOOKS, JSON.stringify({ books: localBooks, current: 0 })],
     [PROBLEMS, JSON.stringify({ version: 1, collections: localCollections })],
     [META, JSON.stringify(metadata)]
@@ -59,10 +59,14 @@ function setup({ localBooks = [book("ローカル棋譜")], localCollections = [
     serverTimestamp: () => "server-timestamp"
   });
   vm.runInContext(source("problems-store.js"), context, { filename: "problems-store.js" });
+  if (defaults) {
+    vm.runInContext(source("default-files.js"), context, { filename: "default-files.js" });
+    window.KifuDefaults.ensure();
+  }
   const sync = source("sync.js").replace(/^import\b[\s\S]*?;\n/gm, "");
   vm.runInContext(sync, context, { filename: "sync.js" });
   return {
-    data, reads, writes, timers, window, store: window.KifuProblems, accountStatus,
+    data, reads, writes, timers, window, store: window.KifuProblems, defaults: window.KifuDefaults, accountStatus,
     auth(user) { authCallback(user ? { uid: user, displayName: user, email: `${user}@example.invalid` } : null); },
     get reloads() { return reloads; },
     metadata() { return JSON.parse(data.get(META)); },
@@ -176,6 +180,153 @@ test("malformed local problem data blocks uploading rather than replacing it wit
   assert.equal(h.data.get(PROBLEMS), malformed);
   assert.equal(h.metadata().pending, true);
   assert.ok(h.accountStatus.textContent.length > 0);
+});
+
+test("a returning account keeps newly seeded defaults when its old remote lists are empty", async () => {
+  const h = setup({
+    localBooks: [], localCollections: [], defaults: true,
+    metadata: { uid: "user-a", pending: false, revision: 4 },
+    read: async () => snap(remoteData([], []))
+  });
+  const samples = { books: json(h.books()), collections: json(h.store.load()) };
+  assert.equal(h.metadata().pending, false, "seeding must not bypass the remote read");
+  h.auth("user-a"); await tick();
+  assert.deepEqual(h.reads, ["user-a"]);
+  assert.deepEqual(json(h.books()), samples.books);
+  assert.deepEqual(json(h.store.load()), samples.collections);
+  assert.equal(h.writes.length, 1);
+  assert.deepEqual(JSON.parse(h.writes[0].value.books), samples.books);
+  assert.deepEqual(JSON.parse(h.writes[0].value.problemCollections), samples.collections);
+  assert.deepEqual(json(h.defaults.pending()), { books: false, problemCollections: false });
+  assert.equal(h.metadata().pending, false);
+});
+
+test("a pending kifu sample merges with newer remote kifu while established problem deletions still apply", async () => {
+  const remoteBook = book("別端末で追加した棋譜");
+  remoteBook.root.comment = "クラウドにある最新の解説";
+  const h = setup({
+    localBooks: [], localCollections: [collection("old-local")], defaults: true,
+    metadata: { uid: "user-a", pending: false },
+    read: async () => snap(remoteData([remoteBook], []))
+  });
+  const sample = json(h.books()[0]);
+  h.auth("user-a"); await tick();
+  assert.deepEqual(json(h.books()), [remoteBook, sample]);
+  assert.deepEqual(json(h.store.load()), []);
+  assert.equal(h.writes.length, 1);
+  assert.deepEqual(JSON.parse(h.writes[0].value.books), [remoteBook, sample]);
+  assert.deepEqual(JSON.parse(h.writes[0].value.problemCollections), []);
+});
+
+test("a pending problem sample does not restore stale local kifu over newer remote kifu", async () => {
+  const h = setup({
+    localCollections: [], defaults: true,
+    metadata: { uid: "user-a", pending: false },
+    read: async () => snap(remoteData([book("最新の棋譜")], [collection("remote")]))
+  });
+  const sample = json(h.store.load()[0]);
+  h.auth("user-a"); await tick();
+  assert.deepEqual(json(h.books()), [book("最新の棋譜")]);
+  assert.deepEqual(json(h.store.load()), [collection("remote"), sample]);
+  assert.equal(h.writes.length, 1);
+});
+
+test("fresh-seed receipts survive page navigation before login without duplicating remote samples", async () => {
+  const firstPage = setup({
+    localBooks: [], localCollections: [], defaults: true,
+    metadata: { uid: "user-a", pending: false }
+  });
+  const samples = { books: json(firstPage.books()), collections: json(firstPage.store.load()) };
+  const nextPage = setup({
+    data: firstPage.data, defaults: true,
+    read: async () => snap(remoteData(samples.books, samples.collections))
+  });
+  assert.deepEqual(json(nextPage.defaults.pending()), { books: true, problemCollections: true });
+  nextPage.auth("user-a"); await tick();
+  assert.deepEqual(json(nextPage.books()), samples.books);
+  assert.deepEqual(json(nextPage.store.load()), samples.collections);
+  assert.deepEqual(json(nextPage.defaults.pending()), { books: false, problemCollections: false });
+});
+
+test("remote deletions remain effective after a seed has been successfully synchronized", async () => {
+  const h = setup({
+    localBooks: [], localCollections: [], defaults: true,
+    metadata: { uid: "user-a", pending: false },
+    read: async () => snap(remoteData([], []))
+  });
+  h.auth("user-a"); await tick();
+  assert.equal(h.writes.length, 1);
+  const nextPage = setup({
+    data: h.data, defaults: true,
+    read: async () => snap(remoteData([], []))
+  });
+  nextPage.auth("user-a"); await tick();
+  assert.deepEqual(json(nextPage.books()), []);
+  assert.deepEqual(json(nextPage.store.load()), []);
+  assert.equal(nextPage.writes.length, 0);
+  nextPage.defaults.ensure();
+  assert.deepEqual(json(nextPage.books()), []);
+  assert.deepEqual(json(nextPage.store.load()), []);
+});
+
+test("deleting a seeded sample before login uploads the deletion instead of regenerating it", async () => {
+  const h = setup({
+    localBooks: [], localCollections: [], defaults: true,
+    metadata: { uid: "user-a", pending: false },
+    read: async () => snap(remoteData([], []))
+  });
+  h.data.set(BOOKS, JSON.stringify({ books: [], current: 0 }));
+  assert.ok(h.store.save([]));
+  h.auth("user-a"); await tick();
+  assert.equal(h.writes.length, 1);
+  assert.deepEqual(JSON.parse(h.writes[0].value.books), []);
+  assert.deepEqual(JSON.parse(h.writes[0].value.problemCollections), []);
+  assert.deepEqual(json(h.defaults.ensure()), { books: false, problemCollections: false });
+  assert.deepEqual(json(h.books()), []);
+  assert.deepEqual(json(h.store.load()), []);
+});
+
+test("failed cloud writes retain fresh-seed receipts for a successful retry after navigation", async () => {
+  const h = setup({
+    localBooks: [], localCollections: [], defaults: true,
+    metadata: { uid: "user-a", pending: false },
+    read: async () => snap(remoteData([], [])),
+    write: async () => { throw new Error("offline"); }
+  });
+  h.auth("user-a"); await tick();
+  assert.equal(h.writes.length, 1);
+  assert.equal(h.metadata().pending, true);
+  assert.deepEqual(json(h.defaults.pending()), { books: true, problemCollections: true });
+  const nextPage = setup({ data: h.data, defaults: true });
+  nextPage.auth("user-a"); await tick();
+  assert.equal(nextPage.writes.length, 1);
+  assert.equal(JSON.parse(nextPage.writes[0].value.books).length, 1);
+  assert.equal(JSON.parse(nextPage.writes[0].value.problemCollections).length, 1);
+  assert.equal(nextPage.metadata().pending, false);
+  assert.deepEqual(json(nextPage.defaults.pending()), { books: false, problemCollections: false });
+});
+
+test("a failed remote read does not acknowledge seeds or overwrite newer remote files on retry", async () => {
+  const h = setup({
+    localBooks: [], localCollections: [], defaults: true,
+    metadata: { uid: "user-a", pending: false },
+    read: async () => { throw new Error("offline"); }
+  });
+  h.auth("user-a"); await tick();
+  assert.equal(h.writes.length, 0);
+  assert.equal(h.metadata().pending, false);
+  assert.deepEqual(json(h.defaults.pending()), { books: true, problemCollections: true });
+  const nextPage = setup({
+    data: h.data, defaults: true,
+    read: async () => snap(remoteData([book("再接続時の最新棋譜")], [collection("latest")]))
+  });
+  nextPage.auth("user-a"); await tick();
+  assert.equal(nextPage.writes.length, 1);
+  assert.equal(nextPage.books().length, 2);
+  assert.equal(nextPage.books()[0].title, "再接続時の最新棋譜");
+  assert.equal(nextPage.store.load().length, 2);
+  assert.equal(nextPage.store.load()[0].id, "latest");
+  assert.deepEqual(json(nextPage.defaults.pending()), { books: false, problemCollections: false });
 });
 
 (async () => {

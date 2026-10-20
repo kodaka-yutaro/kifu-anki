@@ -152,6 +152,41 @@ test("a first visit shows one saved kifu and one playable next-move book", () =>
   assert.deepEqual([...data], initialData, "opening or solving samples does not duplicate or modify them");
 });
 
+test("a legacy empty kifu list gains a visible sample that opens on the board without changing an existing problem book", () => {
+  const collection = { id: "existing-problems", title: "自分の次の一手", createdAt: 1, updatedAt: 1, problems: [] };
+  const savedProblems = JSON.stringify({ version: 1, collections: [collection] });
+  const metadata = JSON.stringify({ uid: "existing-account", pending: false, revision: 7 });
+  const data = new Map([
+    [BOOKS, JSON.stringify({ books: [], current: 0 })],
+    [PROBLEMS, savedProblems],
+    ["kifu-anki-sync-v1", metadata]
+  ]);
+  const library = pageHarness("library", { data });
+  assert.equal(library.get("kifuFileCount").textContent, "1件");
+  assert.equal(library.get("myBooks").children.length, 1);
+  const sample = books(library).books[0];
+  assert.ok(sample.title.startsWith("サンプル："));
+  assert.equal(library.get("myBooks").children[0].querySelector("b").textContent, sample.title);
+  assert.equal(sample.root.children[0].children.length, 2, "the sample contains both opening branches");
+  assert.equal(data.get(PROBLEMS), savedProblems);
+  assert.equal(data.get("kifu-anki-sync-v1"), metadata);
+  assert.equal(library.syncs, 0, "initialization must not skip the next cloud read by marking a user edit");
+  library.get("myBooks").children[0].querySelector("a").click();
+  assert.equal(library.context.location.href, "index.html");
+  const board = harness({ data });
+  assert.equal(board.get("currentBookTitle").textContent, sample.title);
+  assert.deepEqual(json(board.app.state().root), sample.root);
+  board.get("btnNext").click();
+  assert.equal(board.app.state().depth, 1);
+  assert.equal(board.app.state().node.children.length, 2);
+  const beforeRevisit = [...data];
+  const revisited = pageHarness("library", { data });
+  assert.equal(revisited.get("kifuFileCount").textContent, "1件");
+  assert.deepEqual(books(revisited).books, [sample]);
+  assert.equal(data.get(PROBLEMS), savedProblems);
+  assert.deepEqual([...data], beforeRevisit, "returning to the file page does not add another sample");
+});
+
 test("creating an empty kifu keeps a failed draft and opens the newly saved file after retry", () => {
   const data = initial();
   const library = pageHarness("library", { data });

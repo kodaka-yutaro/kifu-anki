@@ -25,6 +25,7 @@ const db = getFirestore(app);
 
 const $ = id => document.getElementById(id);
 const problems = window.KifuProblems;
+const defaults = window.KifuDefaults;
 let user = null;
 let timer = null;
 let session = 0;
@@ -124,6 +125,7 @@ async function push() {
       await setDoc(doc(db, "users", uid), payload, { merge: true });
       if (!active(uid, token)) return;
       if ((meta().revision || 0) === revision && !changedSince(JSON.stringify(saved))) {
+        if (defaults) defaults.synced();
         setMeta({ uid, pending: false, revision });
         status("");
       } else {
@@ -177,12 +179,21 @@ async function onLogin() {
         return;
       }
       const local = localProblems();
-      if (remote && (JSON.stringify(remote.books) !== JSON.stringify(localBooks()) ||
-        (remote.problemCollections !== null && JSON.stringify(remote.problemCollections) !== JSON.stringify(local)))) {
-        setLocalData(remote.books, remote.problemCollections);
+      const seeded = defaults ? defaults.pending() : {};
+      if (remote) {
+        // 初期サンプルだけは、古い空のクラウドデータで消さずに合流する。
+        // 先にサーバーを読み、ほかの端末で保存した棋譜・問題集も保持する。
+        const books = seeded.books ? mergeBooks(remote.books, localBooks()) : remote.books;
+        const collections = seeded.problemCollections && remote.problemCollections !== null
+          ? problems.mergeCollections(remote.problemCollections, local) : remote.problemCollections;
+        if (JSON.stringify(books) !== JSON.stringify(localBooks()) ||
+          (collections !== null && JSON.stringify(collections) !== JSON.stringify(local))) {
+          setLocalData(books, collections);
+        }
       }
       // 古いサーバーデータに問題集フィールドがなくても、端末の問題集は消さない。
-      if (!remote || (problems && remote.problemCollections === null && local.length)) {
+      if (!remote || seeded.books || seeded.problemCollections ||
+        (problems && remote.problemCollections === null && local.length)) {
         markPending();
         loading = false;
         await push();
