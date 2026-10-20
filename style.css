@@ -206,6 +206,12 @@ a.button:hover { border-color:var(--accent); }
 .tutorial-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; }
 .tutorial-actions button { min-height:44px; line-height:1.4; }
 .tutorial-actions button:disabled { opacity:.45; cursor:not-allowed; }
+body.in-tutorial .bar button:disabled,
+body.in-tutorial .bar select:disabled,
+body.in-tutorial .modes button:disabled,
+body.in-tutorial .buttons button:disabled,
+body.in-tutorial .header-tools button:disabled,
+body.in-tutorial a[aria-disabled="true"] { opacity:.45; cursor:not-allowed; }
 .tutorial-actions #btnTutorialNext { margin-left:auto; min-width:88px; }
 .tutorial-card .tutorial-note { margin-top:12px; font-size:.78rem; color:var(--muted); }
 .tutorial-completed { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 22px; margin:12px 0; padding-left:1.3em; font-size:.9rem; line-height:1.6; }
