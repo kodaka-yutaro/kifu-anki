@@ -260,7 +260,9 @@ function harness({ data = new Map(), blocked = false, controller = false, search
   vm.runInContext(source("app.js"), context, { filename: "app.js" });
   if (controller) vm.runInContext(source("tutorial.js"), context, { filename: "tutorial.js" });
   return {
-    app: window.KifuTutorialApp, window, get, data, timers, frames, writes,
+    app: window.KifuTutorialApp, window, get, data, timers, frames, writes, context,
+    runScript(name) { return vm.runInContext(source(name), context, { filename: name }); },
+    blockStorage(value = true) { blocked = value; },
     get saves() { return saves; },
     get focused() { return document.activeElement; },
     modeButton(mode) { return modes.find(el => el.dataset.mode === mode); },
@@ -677,9 +679,11 @@ test("all ten tutorial steps complete through the real app controls and can be r
   assert.equal(h.frames.size, 0);
 });
 
-(async () => {
+if (require.main === module) (async () => {
   for (const { name, check } of tests) {
     await check();
     process.stdout.write(`PASS ${name}\n`);
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });
+
+module.exports = { harness, source, storedBooks, BOOKS, SETTINGS, json };

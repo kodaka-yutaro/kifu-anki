@@ -1,4 +1,4 @@
-// Google ログインと棋譜のサーバー保存（Firebase Authentication + Cloud Firestore）
+// Google ログインと棋譜・問題集のサーバー保存（Firebase Authentication + Cloud Firestore）
 // ブラウザの localStorage を正とし、ログイン中は変更をまとめて users/{uid} に保存する。
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut }
@@ -24,15 +24,35 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 const $ = id => document.getElementById(id);
+const problems = window.KifuProblems;
 let user = null;
 let timer = null;
+let session = 0;
+let loading = false;
+let pushQueue = Promise.resolve();
 
 const readJSON = key => { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } };
-const writeJSON = (key, v) => { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* 保存できない環境 */ } };
-const localBooks = () => (readJSON(STORE_KEY) || {}).books || [];
-function setLocalBooks(books) {
+const writeJSON = (key, v) => {
+  try { localStorage.setItem(key, JSON.stringify(v)); return true; }
+  catch (e) { return false; }
+};
+function localBooks() {
+  const raw = localStorage.getItem(STORE_KEY);
+  if (raw === null || raw === "") return [];
+  const data = JSON.parse(raw);
+  if (!data || !Array.isArray(data.books)) throw new Error("local-books");
+  return data.books;
+}
+const localProblems = () => problems ? problems.load() : [];
+function setLocalData(books, collections) {
   const data = readJSON(STORE_KEY) || {};
-  writeJSON(STORE_KEY, { books, current: Math.min(data.current || 0, Math.max(books.length - 1, 0)) });
+  const previous = localStorage.getItem(STORE_KEY);
+  if (!writeJSON(STORE_KEY, { ...data, books, current: Math.min(data.current || 0, Math.max(books.length - 1, 0)) })) throw new Error("local-storage");
+  if (problems && collections !== null && !problems.save(collections, { notify: false })) {
+    if (previous === null) localStorage.removeItem(STORE_KEY);
+    else localStorage.setItem(STORE_KEY, previous);
+    throw new Error("problem-storage");
+  }
   if (window.kifuReload) window.kifuReload();
 }
 const meta = () => readJSON(SYNC_KEY) || {};
@@ -58,31 +78,69 @@ function mergeBooks(base, extra) {
   return out;
 }
 
-const userDoc = () => doc(db, "users", user.uid);
-async function fetchRemote() {
-  const snap = await getDoc(userDoc());
+const active = (uid, token) => user && user.uid === uid && session === token;
+const snapshot = () => ({ books: localBooks(), problemCollections: localProblems() });
+const changedSince = before => JSON.stringify(snapshot()) !== before;
+function markPending() {
+  const current = meta();
+  setMeta({ ...current, ...(user ? { uid: user.uid } : {}), pending: true, revision: (current.revision || 0) + 1 });
+}
+function schedulePush() {
+  clearTimeout(timer);
+  timer = setTimeout(push, SAVE_DELAY);
+}
+async function fetchRemote(uid) {
+  const snap = await getDoc(doc(db, "users", uid));
   if (!snap.exists()) return null;
-  try { return JSON.parse(snap.data().books); } catch (e) { return null; }
+  const data = snap.data();
+  const books = data.books === undefined ? [] : JSON.parse(data.books);
+  if (!Array.isArray(books) || !books.every(b => b && typeof b.title === "string" && b.root && Array.isArray(b.root.children))) throw new Error("remote-books");
+  let problemCollections = null;
+  if (problems && data.problemCollections !== undefined) {
+    problemCollections = JSON.parse(data.problemCollections);
+    if (!problems.validateCollections(problemCollections)) throw new Error("remote-problems");
+  }
+  return { books, problemCollections };
 }
 async function push() {
   clearTimeout(timer);
-  if (!user) return;
-  const uid = user.uid;
+  timer = null;
+  if (!user || loading) return;
+  const uid = user.uid, token = session;
+  let saved, revision;
   try {
-    await setDoc(userDoc(), { books: JSON.stringify(localBooks()), updatedAt: serverTimestamp() });
-    if (user && user.uid === uid) { setMeta({ uid, pending: false }); status(""); }
+    saved = snapshot();
+    revision = meta().revision || 0;
   } catch (e) {
-    // 通信できない・無料枠を超えたときなど。棋譜はブラウザに残り、次に開いたときに送り直す
-    status("サーバーに保存できませんでした（ブラウザには保存済み）");
+    status("問題集を読み込めないため、サーバーへの保存を中止しました");
+    return;
   }
+  // 書き込みを順番に実行し、古い保存結果が新しい変更を上書きしないようにする。
+  pushQueue = pushQueue.then(async () => {
+    if (!active(uid, token)) return;
+    try {
+      const payload = { books: JSON.stringify(saved.books), updatedAt: serverTimestamp() };
+      if (problems) payload.problemCollections = JSON.stringify(saved.problemCollections);
+      await setDoc(doc(db, "users", uid), payload, { merge: true });
+      if (!active(uid, token)) return;
+      if ((meta().revision || 0) === revision && !changedSince(JSON.stringify(saved))) {
+        setMeta({ uid, pending: false, revision });
+        status("");
+      } else {
+        markPending();
+        schedulePush();
+      }
+    } catch (e) {
+      if (active(uid, token)) status("サーバーに保存できませんでした（ブラウザには保存済み）");
+    }
+  });
+  return pushQueue;
 }
 
-// app.js / library.js が保存するたびに呼ばれる
+// 棋譜または問題集が保存されるたびに呼ばれる。
 window.onKifuSaved = () => {
-  if (!user) return;
-  setMeta({ uid: user.uid, pending: true });
-  clearTimeout(timer);
-  timer = setTimeout(push, SAVE_DELAY);
+  markPending();
+  if (user && !loading) schedulePush();
 };
 // ページを離れる前に、まだ送っていない変更を送る
 document.addEventListener("visibilitychange", () => {
@@ -90,22 +148,50 @@ document.addEventListener("visibilitychange", () => {
 });
 
 async function onLogin() {
+  const uid = user.uid, token = session;
   const m = meta();
+  loading = true;
   try {
-    if (m.uid !== user.uid) {
+    const before = JSON.stringify(snapshot());
+    if (m.uid !== uid) {
       // このブラウザで初めてこのアカウントにログイン：手元の棋譜とサーバーの棋譜を合わせる
-      const remote = await fetchRemote();
-      setLocalBooks(remote ? mergeBooks(remote, localBooks()) : localBooks());
+      const remote = await fetchRemote(uid);
+      if (!active(uid, token)) return;
+      const collections = remote && remote.problemCollections !== null
+        ? problems.mergeCollections(remote.problemCollections, localProblems()) : localProblems();
+      setLocalData(remote ? mergeBooks(remote.books, localBooks()) : localBooks(), collections);
+      markPending();
+      loading = false;
       await push();
     } else if (m.pending) {
+      loading = false;
       await push();              // 前回送れなかった変更を送る
     } else {
-      const remote = await fetchRemote();
+      const remote = await fetchRemote(uid);
+      if (!active(uid, token)) return;
       // 読み込み中に手元で変更していたら、手元を優先する（その変更は onKifuSaved で送られる）
-      if (remote && !meta().pending && JSON.stringify(remote) !== JSON.stringify(localBooks())) setLocalBooks(remote);
+      if (meta().pending || changedSince(before)) {
+        markPending();
+        loading = false;
+        await push();
+        return;
+      }
+      const local = localProblems();
+      if (remote && (JSON.stringify(remote.books) !== JSON.stringify(localBooks()) ||
+        (remote.problemCollections !== null && JSON.stringify(remote.problemCollections) !== JSON.stringify(local)))) {
+        setLocalData(remote.books, remote.problemCollections);
+      }
+      // 古いサーバーデータに問題集フィールドがなくても、端末の問題集は消さない。
+      if (!remote || (problems && remote.problemCollections === null && local.length)) {
+        markPending();
+        loading = false;
+        await push();
+      }
     }
   } catch (e) {
-    status("サーバーの棋譜を読み込めませんでした");
+    if (active(uid, token)) status("サーバーの棋譜・問題集を読み込めませんでした");
+  } finally {
+    if (active(uid, token)) loading = false;
   }
 }
 
@@ -153,6 +239,10 @@ function initUI() {
 
 initUI();
 onAuthStateChanged(auth, u => {
+  clearTimeout(timer);
+  timer = null;
+  session++;
+  loading = false;
   user = u;
   renderAccount();
   if (u) onLogin();
