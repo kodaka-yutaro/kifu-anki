@@ -16,8 +16,9 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"棋譜暗記道場","alternateName":"棋譜暗記サイト","url":"https://kifu.kdking-tools.com/","applicationCategory":"GameApplication","operatingSystem":"Web","inLanguage":"ja","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"description":"将棋の棋譜や定跡をツリーで管理し、盤上で指して暗記できる無料の棋譜暗記サイト。KIFファイルの読み込み・書き出しに対応。"}
 </script>
-<link rel="stylesheet" href="style.css?v=9">
-<link rel="stylesheet" href="pieces.css?v=1">
+<link rel="stylesheet" href="style.css?v=10">
+<link rel="stylesheet" href="fonts/pieces-fonts.css?v=1">
+<link rel="stylesheet" href="pieces.css?v=2">
 </head>
 <body>
 <header class="site-header app-header">
@@ -153,18 +154,19 @@
 <dialog id="settingsDialog" class="dialog">
   <h2>設定</h2>
   <h3>盤</h3>
-  <div class="choices" id="boardChoices">
+  <div class="choices" id="boardChoices" role="radiogroup" aria-label="盤のデザイン">
     <label><input type="radio" name="board" value="kaya"><span class="swatch board-kaya"></span>榧（かや）</label>
     <label><input type="radio" name="board" value="light"><span class="swatch board-light"></span>白木</label>
     <label><input type="radio" name="board" value="green"><span class="swatch board-green"></span>緑</label>
-    <label><input type="radio" name="board" value="dark"><span class="swatch board-dark"></span>夜</label>
+    <label><input type="radio" name="board" value="felt"><span class="swatch board-felt"></span>グレーフェルト</label>
   </div>
   <h3>駒</h3>
   <div class="choices" id="pieceChoices" role="radiogroup" aria-label="駒のデザイン">
-    <label><input type="radio" name="pieces" value="plain"><span class="sample pieces-plain"><span>飛</span></span>文字</label>
-    <label><input type="radio" name="pieces" value="mincho"><span class="sample pieces-mincho"><span>飛</span></span>明朝</label>
-    <label><input type="radio" name="pieces" value="koma"><span class="sample pieces-koma"><span>飛</span></span>木の駒</label>
-    <label><input type="radio" name="pieces" value="kokuryu"><span class="sample pieces-kokuryu"><span>飛</span></span>黒の駒</label>
+    <label><input type="radio" name="pieces" value="plain"><span class="sample pieces-plain" aria-hidden="true"><span class="piece-body" data-piece="r"><b class="piece-letter">飛</b></span></span>文字だけ</label>
+    <label><input type="radio" name="pieces" value="rounded"><span class="sample pieces-rounded" aria-hidden="true"><span class="piece-body" data-piece="r"><b class="piece-letter">飛</b></span></span>丸文字コマ</label>
+    <label><input type="radio" name="pieces" value="koma"><span class="sample pieces-koma" aria-hidden="true"><span class="piece-body" data-piece="r"><b class="piece-letter">飛</b></span></span>普通のコマ</label>
+    <label><input type="radio" name="pieces" value="photo"><span class="sample pieces-photo" aria-hidden="true"><span class="piece-body two-letter" data-piece="r"><b class="piece-letter">飛
+車</b></span></span>写真風コマ</label>
   </div>
   <h3>表示</h3>
   <label class="check"><input type="checkbox" id="optArrows"> 最初・最後へ飛ぶボタン（⏮ ⏭）を表示</label>
@@ -222,7 +224,7 @@
 </section>
 
 <script src="shogi.js?v=4"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 <script src="tutorial.js?v=2"></script>
 <script type="module" src="sync.js?v=2"></script>
 </body>

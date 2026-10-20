@@ -308,6 +308,39 @@ test("KIF export and import preserve both branches and their comments", () => {
   assert.deepEqual(roundTrip, root);
 });
 
+test("retired themes load into selectable replacements without changing saved books", () => {
+  for (const [oldPieces, newPieces] of [["mincho", "rounded"], ["kokuryu", "photo"]]) {
+    const books = JSON.stringify(storedBooks());
+    const data = new Map([[BOOKS, books], [SETTINGS, JSON.stringify({ board: "dark", pieces: oldPieces, arrows: false, hideComments: true })]]);
+    const h = harness({ data });
+    assert.equal(h.app.state().settings.board, "felt");
+    assert.equal(h.app.state().settings.pieces, newPieces);
+    h.get("optArrows").checked = true;
+    h.get("settingsDialog").dispatch("change");
+    assert.deepEqual(JSON.parse(data.get(SETTINGS)), { board: "felt", pieces: newPieces, arrows: true, hideComments: true });
+    assert.equal(data.get(BOOKS), books);
+    assert.equal(h.saves, 0);
+  }
+});
+
+test("photo lettering keeps captured pieces, promoted moves, and KIF data intact", () => {
+  const kif = "手合割：平手\n手数----指手---------消費時間--\n1 ７六歩(77)\n2 ３四歩(33)\n3 ２二角成(88)\n";
+  const data = new Map([[SETTINGS, JSON.stringify({ board: "felt", pieces: "photo" })]]);
+  const h = harness({ data });
+  h.app.begin("表示確認", kif);
+  h.app.sample(kif, { depth: 3 });
+  const promoted = h.get("board").children.find(el => +el.dataset.file === 2 && +el.dataset.rank === 2);
+  assert.equal(promoted.getAttribute("aria-label"), "2二 先手馬");
+  assert.equal(promoted.classList.contains("promoted"), true);
+  assert.ok(promoted.innerHTML.includes("龍\n馬"));
+  const captured = h.get("handBottom").children.find(el => el.classList.contains("hand-piece"));
+  assert.equal(captured.getAttribute("aria-label"), "先手の持駒 角 1枚");
+  assert.ok(captured.innerHTML.includes("角\n行"));
+  assert.deepEqual(json(h.app.state().root), Shogi.parseKIF(kif));
+  h.app.finish();
+  assert.equal(data.has(BOOKS), false);
+});
+
 test("tutorial moves, comments and settings leave saved books and sync callbacks untouched", () => {
   const data = new Map([[BOOKS, JSON.stringify(storedBooks())], [SETTINGS, JSON.stringify({
     board: "dark", pieces: "mincho", arrows: false, hideComments: true
