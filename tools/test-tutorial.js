@@ -11,7 +11,6 @@ const lesson = require("../tutorial.js");
 const source = name => fs.readFileSync(path.join(__dirname, "..", name), "utf8");
 const BOOKS = "kifu-anki-books-v1";
 const SETTINGS = "kifu-anki-settings-v1";
-const TUTORIAL = "kifu-anki-tutorial-v1";
 const json = value => JSON.parse(JSON.stringify(value));
 const storedBooks = (title = "既存の定跡") => ({
   books: [{ title, root: Shogi.parseKIF(lesson.fullKif) }], current: 0
@@ -41,9 +40,10 @@ function leafLines(root) {
   return lines;
 }
 
-// Only the DOM methods used by app.js and the welcome/replay controls are stubbed.
+// Only the DOM methods used by app.js and the tutorial controls are stubbed.
 // The real application, KIF parser, storage guards, and timer callbacks run below.
 function harness({ data = new Map(), blocked = false, controller = false, search = "" } = {}) {
+  let document;
   class Element {
     constructor(id = "", tagName = "BUTTON") {
       this.id = id; this.tagName = tagName; this.dataset = {};
@@ -51,6 +51,9 @@ function harness({ data = new Map(), blocked = false, controller = false, search
       this.disabled = false; this.hidden = false; this.checked = false; this.open = false;
       this.value = ""; this.textContent = "";
       this.scrollLeft = 0; this.scrollTop = 0; this.clientWidth = 640; this.clientHeight = 240;
+      this.parentElement = null;
+      this.style = { setProperty(name, value) { this[name] = value; }, removeProperty(name) { delete this[name]; } };
+      this.rect = { left: 100, top: 100, width: id === "tutorialPanel" ? 320 : 120, height: id === "tutorialPanel" ? 180 : 32 };
       const classes = new Set();
       Object.defineProperty(this, "className", {
         get: () => [...classes].join(" "),
@@ -64,7 +67,9 @@ function harness({ data = new Map(), blocked = false, controller = false, search
       };
     }
     set innerHTML(value) {
-      this.html = value; this.children = [];
+      this.html = value;
+      this.children.forEach(child => child.parentElement = null);
+      this.children = [];
       if (this.id === "tree") {
         for (const match of value.matchAll(/<g\s+([^>]+)>/g)) {
           const node = new Element("", "g");
@@ -73,16 +78,29 @@ function harness({ data = new Map(), blocked = false, controller = false, search
             if (name === "class") node.className = content;
             if (name.startsWith("data-")) node.dataset[name.slice(5)] = content;
           }
-          this.children.push(node);
+          this.appendChild(node);
         }
       }
     }
     get innerHTML() { return this.html || ""; }
-    setAttribute(name, value) { this.attributes.set(name, String(value)); }
-    getAttribute(name) { return this.attributes.get(name) ?? null; }
+    setAttribute(name, value) {
+      this.attributes.set(name, String(value));
+      if (name === "class") this.className = value;
+      if (name.startsWith("data-")) this.dataset[name.slice(5)] = String(value);
+    }
+    getAttribute(name) {
+      if (name === "id") return this.id || null;
+      if (name === "class") return this.className || null;
+      if (name.startsWith("data-")) return this.dataset[name.slice(5)] === undefined ? null : String(this.dataset[name.slice(5)]);
+      if (name === "disabled") return this.disabled ? "" : null;
+      return this.attributes.get(name) ?? null;
+    }
     removeAttribute(name) { this.attributes.delete(name); }
-    appendChild(child) { this.children.push(child); }
-    add(child) { this.children.push(child); }
+    appendChild(child) {
+      if (child.parentElement) child.parentElement.children = child.parentElement.children.filter(el => el !== child);
+      child.parentElement = this; this.children.push(child); return child;
+    }
+    add(child) { this.appendChild(child); }
     insertAdjacentHTML() {}
     addEventListener(type, listener) {
       if (!this.listeners.has(type)) this.listeners.set(type, []);
@@ -90,25 +108,78 @@ function harness({ data = new Map(), blocked = false, controller = false, search
     }
     dispatch(type, detail = {}) {
       const event = { target: this, preventDefault() {}, stopPropagation() {}, ...detail };
-      if (this[`on${type}`]) this[`on${type}`](event);
+      const result = this[`on${type}`] ? this[`on${type}`](event) : undefined;
       for (const listener of this.listeners.get(type) || []) listener(event);
+      return result;
     }
-    click() { if (!this.disabled) this.dispatch("click"); }
+    click() { if (!this.disabled) return this.dispatch("click"); }
     showModal() { this.open = true; }
     close(value = "") { this.returnValue = value; this.open = false; this.dispatch("close"); }
-    focus() {}
+    focus() { document.activeElement = this; }
     scrollIntoView() {}
-    remove() {}
+    remove() {
+      if (this.parentElement) this.parentElement.children = this.parentElement.children.filter(el => el !== this);
+      this.parentElement = null;
+    }
+    getBoundingClientRect() {
+      let { left, top, width, height } = this.rect;
+      if (this.parentElement && this.parentElement.id === "board") {
+        const index = this.parentElement.children.indexOf(this);
+        width = height = 40; left = 180 + (index % 9) * 40; top = 180 + Math.floor(index / 9) * 40;
+      }
+      return { left, top, width, height, right: left + width, bottom: top + height, x: left, y: top };
+    }
+    getClientRects() {
+      for (let el = this; el; el = el.parentElement) {
+        if (el.hidden || (el.tagName === "DIALOG" && !el.open)) return [];
+      }
+      return [this.getBoundingClientRect()];
+    }
+    matches(selector) {
+      return selector.split(",").some(part => {
+        const tokens = part.trim().match(/(?:\[[^\]]*\]|[^\s])+/g) || [];
+        const matchesToken = (el, token) => {
+          const tag = /^[\w-]+/.exec(token);
+          const id = /#([\w-]+)/.exec(token);
+          if (tag && el.tagName.toLowerCase() !== tag[0].toLowerCase()) return false;
+          if (id && el.id !== id[1]) return false;
+          for (const [, name] of token.matchAll(/\.([\w-]+)/g)) if (!el.classList.contains(name)) return false;
+          for (const [, name, value] of token.matchAll(/\[([\w-]+)(?:="([^"]*)")?\]/g)) {
+            if (name === "open" ? !el.open : el.getAttribute(name) === null) return false;
+            if (value !== undefined && el.getAttribute(name) !== value) return false;
+          }
+          return true;
+        };
+        if (!tokens.length || !matchesToken(this, tokens.pop())) return false;
+        let ancestor = this.parentElement;
+        while (tokens.length) {
+          const token = tokens.pop();
+          while (ancestor && !matchesToken(ancestor, token)) ancestor = ancestor.parentElement;
+          if (!ancestor) return false;
+          ancestor = ancestor.parentElement;
+        }
+        return true;
+      });
+    }
+    closest(selector) {
+      for (let el = this; el; el = el.parentElement) if (el.matches(selector)) return el;
+      return null;
+    }
     querySelectorAll(selector) {
-      return selector === "g.node" ? this.children.filter(el => el.classList.contains("node")) : [];
+      const found = [];
+      const visit = el => {
+        if (el.matches && el.matches(selector)) found.push(el);
+        (el.children || []).forEach(visit);
+      };
+      this.children.forEach(visit);
+      return found;
     }
-    querySelector(selector) {
-      return selector === "g.current" ? this.children.find(el => el.classList.contains("current")) : null;
-    }
+    querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
   }
   const elements = new Map();
   for (const match of source("index.html").matchAll(/<(\w+)[^>]*\bid="([^"]+)"[^>]*>/g)) {
     const element = new Element(match[2], match[1].toUpperCase());
+    for (const [, name, value] of match[0].matchAll(/([\w-]+)="([^"]*)"/g)) element.setAttribute(name, value);
     element.hidden = /\bhidden\b/.test(match[0]);
     elements.set(element.id, element);
   }
@@ -121,26 +192,60 @@ function harness({ data = new Map(), blocked = false, controller = false, search
     inputs[name] = [...source("index.html").matchAll(new RegExp(`name="${name}" value="([^"]+)"`, "g"))]
       .map(match => { const input = new Element("", "INPUT"); input.value = match[1]; return input; });
   }
-  get("settingsDialog").querySelectorAll = selector => inputs[/name=(\w+)/.exec(selector)[1]];
-  get("settingsDialog").querySelector = selector =>
-    get("settingsDialog").querySelectorAll(selector).find(input => input.checked);
-  const document = new Element();
+  get("settingsDialog").querySelectorAll = function (selector) {
+    const name = /name=(\w+)/.exec(selector);
+    return name ? inputs[name[1]] : Element.prototype.querySelectorAll.call(this, selector);
+  };
+  get("settingsDialog").querySelector = function (selector) {
+    const candidates = this.querySelectorAll(selector);
+    return selector.includes(":checked") ? candidates.find(input => input.checked) : candidates[0] || null;
+  };
+  document = new Element();
   document.body = new Element("", "BODY"); document.documentElement = new Element("", "HTML");
+  document.documentElement.appendChild(document.body);
+  for (const el of elements.values()) document.body.appendChild(el);
+  const guideContent = new Element("", "DIV");
+  guideContent.className = "tutorial-guide-content";
+  get("tutorialPanel").appendChild(guideContent);
+  for (const id of ["tutorialStep", "tutorialTitle", "tutorialHint", "tutorialFeedback", "tutorialProgress", "btnTutorialExit", "btnTutorialNext", "btnTutorialBack", "btnTutorialRetry"])
+    if (elements.has(id)) guideContent.appendChild(get(id));
+  for (const id of ["tutorialDoneTitle", "btnTutorialFinish", "btnTutorialKeep"])
+    if (elements.has(id)) get("tutorialDone").appendChild(get(id));
+  get("helpDialog").appendChild(get("btnHelpTutorial"));
+  // Dialog action buttons have no IDs, but the moving guide anchors to them.
+  for (const id of ["settingsDialog", "importDialog"]) {
+    const markup = new RegExp(`<dialog[^>]*id="${id}"[^>]*>([\\s\\S]*?)</dialog>`).exec(source("index.html"))[1];
+    for (const [, contents] of markup.matchAll(/<form\b[^>]*>([\s\S]*?)<\/form>/g)) {
+      const form = new Element("", "FORM"); get(id).appendChild(form);
+      for (const [, attributes] of contents.matchAll(/<button\b([^>]*)>/g)) {
+        const button = new Element();
+        for (const [, name, value] of attributes.matchAll(/([\w-]+)="([^"]*)"/g)) button.setAttribute(name, value);
+        form.appendChild(button);
+      }
+    }
+  }
+  const modeGroup = new Element(); modeGroup.className = "modes";
+  modes.forEach(el => modeGroup.appendChild(el)); document.body.appendChild(modeGroup);
+  for (const group of Object.values(inputs)) group.forEach(el => get("settingsDialog").appendChild(el));
+  for (const id of ["optArrows", "optHideComments"]) get("settingsDialog").appendChild(get(id));
+  document.activeElement = document.body;
   document.getElementById = get;
   document.createElement = tag => new Element("", tag.toUpperCase());
-  document.querySelectorAll = selector => selector === ".modes button" ? modes : [];
-  document.querySelector = selector => {
-    if (/^#[\w-]+$/.test(selector)) return get(selector.slice(1));
-    if (selector === "dialog[open]") return [...elements.values()].find(el => el.tagName === "DIALOG" && el.open);
-    return null;
-  };
+  document.querySelectorAll = selector => document.documentElement.querySelectorAll(selector);
+  document.querySelector = selector => document.documentElement.querySelector(selector);
   const timers = new Map();
+  const frames = new Map();
   const writes = [];
-  let timerId = 0, saves = 0;
+  let timerId = 0, frameId = 0, saves = 0;
   const window = new Element();
+  window.innerWidth = 1024; window.innerHeight = 768;
+  const requestAnimationFrame = callback => { const id = ++frameId; frames.set(id, callback); return id; };
+  const cancelAnimationFrame = id => frames.delete(id);
+  window.requestAnimationFrame = requestAnimationFrame; window.cancelAnimationFrame = cancelAnimationFrame;
   window.onKifuSaved = () => saves++;
   const context = vm.createContext({
     Shogi, document, window, URL, URLSearchParams, TextDecoder, Blob, File,
+    requestAnimationFrame, cancelAnimationFrame,
     location: { search, pathname: "/" }, history: { replaceState() {} }, navigator: {},
     Option: function (text, value) { this.text = text; this.value = value; },
     localStorage: {
@@ -155,9 +260,21 @@ function harness({ data = new Map(), blocked = false, controller = false, search
   vm.runInContext(source("app.js"), context, { filename: "app.js" });
   if (controller) vm.runInContext(source("tutorial.js"), context, { filename: "tutorial.js" });
   return {
-    app: window.KifuTutorialApp, window, get, data, timers, writes,
+    app: window.KifuTutorialApp, window, get, data, timers, frames, writes,
     get saves() { return saves; },
+    get focused() { return document.activeElement; },
     modeButton(mode) { return modes.find(el => el.dataset.mode === mode); },
+    startTutorial() {
+      get("btnHelp").click(); get("btnHelpTutorial").click(); this.flushFrames();
+    },
+    flushFrames() {
+      let count = 0;
+      while (frames.size) {
+        assert.ok(++count < 50, "animation frames did not settle");
+        const [id, callback] = frames.entries().next().value;
+        frames.delete(id); callback(0);
+      }
+    },
     flushTimers() {
       let count = 0;
       while (timers.size) {
@@ -328,45 +445,57 @@ test("an import from an earlier tutorial step cannot change a replacement sample
   }
 });
 
-test("first-use invitation, dismissal and manual replay work without saving a demo book", () => {
+test("a tutorial starts only from help and can be replayed without writing history or a demo book", () => {
   const h = harness({ controller: true });
-  assert.equal(h.get("tutorialWelcome").hidden, false);
-  h.get("btnTutorialDismiss").click();
-  assert.equal(h.get("tutorialWelcome").hidden, true);
-  assert.equal(h.data.has(TUTORIAL), true);
-  h.get("btnTutorial").click();
+  const importHandler = h.get("btnImport").onclick;
+  assert.equal(h.app.state().active, false);
+  assert.equal(h.get("tutorialPanel").hidden, true);
+  assert.equal(h.get("tutorialDone").hidden, true);
+  h.startTutorial();
   assert.equal(h.app.state().active, true);
+  assert.equal(h.get("helpDialog").open, false);
   h.get("btnTutorialExit").click();
-  h.get("btnHelpTutorial").click();
+  h.startTutorial();
   assert.equal(h.app.state().active, true);
   h.get("btnTutorialExit").click();
   assert.equal(h.app.state().active, false);
-  assert.equal(h.data.has(BOOKS), false);
+  assert.equal(h.get("btnImport").onclick, importHandler);
+  let filePickerOpened = 0;
+  h.get("fileInput").onclick = () => filePickerOpened++;
+  h.get("btnImport").click();
+  assert.equal(filePickerOpened, 1, "normal import returns to the file picker after exit");
+  assert.equal(h.data.size, 0);
+  assert.equal(h.writes.length, 0);
   assert.equal(h.get("btnNew").disabled, false);
   assert.equal(h.get("btnLibrary").getAttribute("aria-disabled"), null);
+  assert.equal(h.focused, h.get("btnHelp"));
+  h.flushFrames();
+  assert.equal(h.frames.size, 0);
   const reload = harness({ data: h.data, controller: true });
-  assert.equal(reload.get("tutorialWelcome").hidden, true);
+  assert.equal(reload.app.state().active, false);
+  assert.equal(reload.get("tutorialPanel").hidden, true);
 });
 
-test("existing books and a pending linked KIF suppress the first-use invitation", () => {
+test("existing books stay idle and a pending linked KIF prevents starting a tutorial", () => {
   const existing = harness({ data: new Map([[BOOKS, JSON.stringify(storedBooks())]]), controller: true });
-  assert.equal(existing.get("tutorialWelcome").hidden, true);
-  existing.get("btnTutorial").click();
+  assert.equal(existing.app.state().active, false);
+  existing.startTutorial();
   assert.equal(existing.app.state().active, true);
   existing.get("btnTutorialExit").click();
   const linked = harness({ search: "?kif=joseki/example.kif", controller: true });
-  assert.equal(linked.get("tutorialWelcome").hidden, true);
-  assert.equal(linked.app.state().linkedKifPending, true);
-  linked.get("btnTutorial").click();
+  const importHandler = linked.get("btnImport").onclick;
   assert.equal(linked.app.state().active, false);
+  assert.equal(linked.app.state().linkedKifPending, true);
+  linked.startTutorial();
+  assert.equal(linked.app.state().active, false);
+  assert.equal(linked.get("btnImport").onclick, importHandler);
 });
 
-test("unavailable browser storage still permits first use, exit and replay", () => {
+test("unavailable browser storage still permits help entry, exit and replay", () => {
   const h = harness({ blocked: true, controller: true });
   const original = h.app.state().root;
-  assert.equal(h.get("tutorialWelcome").hidden, false);
   for (let i = 0; i < 2; i++) {
-    h.get("btnTutorialStart").click();
+    h.startTutorial();
     assert.equal(h.app.state().active, true);
     h.get("btnTutorialExit").click();
     assert.equal(h.app.state().root, original);
@@ -390,9 +519,11 @@ test("failed lesson storage reports the failure and does not notify cloud sync",
 test("all ten tutorial steps complete through the real app controls and can be replayed", async () => {
   const original = storedBooks();
   const h = harness({ data: new Map([[BOOKS, JSON.stringify(original)]]), controller: true });
+  const importHandler = h.get("btnImport").onclick;
   const next = () => {
     assert.equal(h.get("btnTutorialNext").disabled, false, h.get("tutorialTitle").textContent);
     h.get("btnTutorialNext").click();
+    h.flushFrames();
   };
   const finishLine = () => {
     const done = h.app.state().done;
@@ -404,12 +535,35 @@ test("all ten tutorial steps complete through the real app controls and can be r
     }
   };
 
-  h.get("btnTutorial").click();
+  h.startTutorial();
   h.move([7, 7], [7, 6]); next();
   h.get("btnPrev").click(); h.get("btnNext").click(); h.get("btnLast").click(); next();
   h.get("btnPrev").click(); h.move([8, 2], [3, 2]); next();
   const mainLeaf = h.get("tree").children.find(el => el.getAttribute("aria-label") === "6手目 △４二飛");
   assert.ok(mainLeaf); mainLeaf.click();
+
+  // Fixed geometry probe for a keyboard-sized viewport; this is not a CSS renderer.
+  const guide = h.get("tutorialPanel"), input = h.get("comment");
+  const content = guide.querySelector(".tutorial-guide-content");
+  const measureGuide = guide.getBoundingClientRect, inputRect = input.rect;
+  h.window.visualViewport = { width: 390, height: 300, offsetLeft: 0, offsetTop: 0 };
+  input.rect = { left: 16, top: 110, width: 358, height: 110 };
+  guide.getBoundingClientRect = () => {
+    const left = parseFloat(guide.style.left) || 0, top = parseFloat(guide.style.top) || 0;
+    const width = Math.min(320, parseFloat(guide.style.maxWidth) || 320);
+    // Supply the measured size after max-height, including a two-pixel outer border.
+    const height = Math.min(180, (parseFloat(content.style.maxHeight) || 180) + 2);
+    return { left, top, width, height, right: left + width, bottom: top + height };
+  };
+  input.focus(); h.window.dispatch("resize"); h.flushFrames();
+  const placed = guide.getBoundingClientRect();
+  assert.equal(guide.classList.contains("is-typing"), true);
+  assert.equal(guide.dataset.placement, "top");
+  assert.ok(placed.top >= 0 && placed.bottom <= input.rect.top, "the guide stays above the active comment field");
+  assert.ok(placed.left >= 0 && placed.right <= 390, "the guide stays inside the narrow viewport");
+  guide.getBoundingClientRect = measureGuide; input.rect = inputRect;
+  h.window.visualViewport = undefined; h.window.dispatch("resize"); h.flushFrames();
+
   const comment = "飛車を4筋に振る練習メモ";
   h.comment(comment); next();
 
@@ -421,19 +575,51 @@ test("all ten tutorial steps complete through the real app controls and can be r
   h.modeButton("both").click(); finishLine(); next();
 
   h.get("btnSettings").click();
+  h.flushFrames();
+  assert.equal(h.get("tutorialPanel").parentElement, h.get("settingsDialog"));
   h.get("optHideComments").checked = true; h.get("settingsDialog").dispatch("change");
+  h.flushFrames();
+  assert.equal(h.get("settingsDialog").querySelector("form button").getAttribute("aria-describedby"), "tutorialHint");
   h.get("settingsDialog").close();
+  h.flushFrames();
+  assert.equal(h.get("tutorialPanel").parentElement.tagName, "BODY");
   assert.equal(h.get("commentCover").hidden, false);
   h.get("commentCover").click(); next();
   h.get("btnExport").click(); h.flushTimers(); next();
-  const imported = h.get("btnTutorialImport").onclick();
+  const earlierStepImport = h.get("btnImport").click();
+  await new Promise(setImmediate);
+  h.flushFrames();
+  assert.equal(h.get("importDialog").open, true);
+  assert.equal(h.get("tutorialPanel").parentElement, h.get("importDialog"));
+  assert.equal(h.get("importDialog").querySelector('button[value="merge"]').getAttribute("aria-describedby"), "tutorialHint");
+  h.get("btnTutorialBack").click();
+  await earlierStepImport; h.flushFrames();
+  assert.equal(h.get("importDialog").open, false);
+  assert.equal(h.get("tutorialPanel").parentElement.tagName, "BODY");
+  assert.equal(h.get("tutorialStep").textContent, "9 / 10");
+  h.get("btnExport").click(); h.flushTimers(); next();
+
+  const supersededImport = h.get("btnImport").click();
+  await new Promise(setImmediate);
+  h.get("btnTutorialRetry").click();
+  // Start another read before the canceled read's finally callback has run.
+  const canceledImport = h.get("btnImport").click();
+  await new Promise(setImmediate); await supersededImport;
+  assert.equal(h.get("importDialog").open, true);
+  assert.equal(h.get("btnImport").disabled, true, "an older import must not reset a newer import's busy state");
+  h.get("importDialog").close(); await canceledImport;
+  h.flushFrames();
+  assert.equal(h.get("tutorialPanel").parentElement.tagName, "BODY");
+  assert.equal(h.get("btnTutorialNext").disabled, true, "canceling import must not complete the step");
+  assert.equal(h.get("btnImport").disabled, false, "a canceled import can be retried");
+  const imported = h.get("btnImport").click();
   await new Promise(setImmediate);
   assert.equal(h.get("importDialog").open, true);
   h.get("importDialog").close("merge"); await imported; next();
 
   assert.equal(h.get("tutorialDone").hidden, false);
-  assert.equal(JSON.parse(h.data.get(TUTORIAL)).status, "completed");
   assert.deepEqual(JSON.parse(h.data.get(BOOKS)), original);
+  assert.equal(h.writes.length, 0);
   assert.equal(h.saves, 0);
   h.get("btnTutorialKeep").click();
   const saved = JSON.parse(h.data.get(BOOKS));
@@ -445,12 +631,17 @@ test("all ten tutorial steps complete through the real app controls and can be r
   assert.ok(leaf.comment.includes(comment));
   assert.equal(h.saves, 1);
   assert.equal(h.timers.size, 0);
-  h.get("btnTutorial").click();
+  assert.equal(h.get("btnImport").onclick, importHandler);
+  h.startTutorial();
   assert.equal(h.app.state().active, true);
   assert.equal(h.app.state().depth, 0);
   h.get("btnTutorialExit").click();
   assert.deepEqual(JSON.parse(h.data.get(BOOKS)), saved);
   assert.equal(h.timers.size, 0);
+  assert.equal(h.get("btnImport").onclick, importHandler);
+  assert.deepEqual(h.writes, [BOOKS]);
+  h.flushFrames();
+  assert.equal(h.frames.size, 0);
 });
 
 (async () => {

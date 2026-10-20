@@ -98,19 +98,6 @@ html[data-board="dark"] .cell.selected { background:#7a6530; }
 html[data-board="dark"] .cell.promoted { color:#ff8a80; }
 html[data-board="kaya"] .board { background:linear-gradient(135deg,#ebc882,#e2b96e 60%,#e9c47c); }
 
-/* ---- 駒のデザイン ---- */
-html[data-pieces="mincho"] .cell, html[data-pieces="mincho"] .hand-piece, .pieces-mincho { font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; font-weight:bold; }
-html[data-pieces="koma"] .cell span, html[data-pieces="kokuryu"] .cell span, .pieces-koma span, .pieces-kokuryu span {
-  width:84%; height:90%; display:inline-flex; align-items:center; justify-content:center; padding-top:12%;
-  clip-path:polygon(50% 0,86% 16%,100% 100%,0 100%,14% 16%); font-size:.9em;
-  font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; font-weight:bold; }
-html[data-pieces="koma"] .cell span, .pieces-koma span { background:linear-gradient(#fbe7b5,#f0cf8a); color:#2b2520; }
-html[data-pieces="kokuryu"] .cell span, .pieces-kokuryu span { background:linear-gradient(#3a3a3a,#141414); color:#f5efe4; }
-html[data-pieces="koma"] .cell.promoted span, .pieces-koma.promoted span { color:#b71c1c; }
-html[data-pieces="kokuryu"] .cell.promoted span { color:#ff8a80; }
-html[data-pieces="koma"] .hand-piece, html[data-pieces="kokuryu"] .hand-piece { font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif; font-weight:bold; }
-html[data-pieces="kokuryu"] .hand-piece { background:#222; color:#f5efe4; border-color:#000; }
-
 /* ---- 設定ダイアログ ---- */
 .choices { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
 .choices label { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px; border:1px solid var(--border); border-radius:10px; cursor:pointer; font-size:.85rem; }
@@ -187,22 +174,10 @@ a.button:hover { border-color:var(--accent); }
 .app-header { justify-content:space-between; flex-wrap:wrap; }
 .app-header .header-tools { position:static; margin-left:auto; align-items:center; flex-wrap:wrap; }
 .app-header .tagline { text-align:left; }
-.tutorial-entry { font-size:.8rem; font-weight:bold; min-height:36px; color:var(--accent); }
 .tutorial-card { margin:14px 0; padding:16px 18px; border:1px solid var(--border); border-radius:12px; background:var(--panel); overflow-wrap:anywhere; }
 .tutorial-card h2 { margin:6px 0 8px; font-size:1.08rem; line-height:1.5; color:var(--accent); }
 .tutorial-card p { margin:6px 0; line-height:1.65; }
 .tutorial-card .tutorial-eyebrow { margin:0; font-size:.78rem; font-weight:bold; letter-spacing:.04em; color:var(--accent); }
-.tutorial-welcome { border-left:4px solid var(--accent); background:#fffaf1; }
-.tutorial-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-.tutorial-exit { min-height:36px; padding:4px 12px; font-size:.85rem; }
-.tutorial-panel progress { display:block; width:100%; height:5px; margin:8px 0 12px; border:none; border-radius:20px; overflow:hidden; background:#eee4d5; accent-color:var(--accent); }
-.tutorial-panel progress::-webkit-progress-bar { border-radius:20px; background:#eee4d5; }
-.tutorial-panel progress::-webkit-progress-value { border-radius:20px; background:var(--accent); }
-.tutorial-panel progress::-moz-progress-bar { border-radius:20px; background:var(--accent); }
-.tutorial-card .tutorial-hint { padding:8px 10px; border-radius:7px; background:#f6f0e4; font-size:.9rem; }
-.tutorial-card .tutorial-feedback { color:var(--ok); font-size:.9rem; font-weight:bold; }
-.tutorial-card .tutorial-feedback.ng { color:var(--ng); }
-.tutorial-hint:empty, .tutorial-feedback:empty { display:none; }
 .tutorial-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; }
 .tutorial-actions button { min-height:44px; line-height:1.4; }
 .tutorial-actions button:disabled { opacity:.45; cursor:not-allowed; }
@@ -219,23 +194,44 @@ body.in-tutorial a[aria-disabled="true"] { opacity:.45; cursor:not-allowed; }
 .tutorial-done .tutorial-eyebrow { color:var(--ok); }
 .tutorial-help { padding:10px 12px; border-radius:8px; background:#f6f0e4; font-size:.9rem; line-height:1.6; }
 .tutorial-help button { margin-top:8px; min-height:40px; }
+
+/* 矢印を外に出し、内容だけをスクロールさせる。dialog 内でも同じ見た目を保つ。 */
+.tutorial-guide { --guide-bg:#fffefb; --guide-border:#c5aa83; position:fixed; z-index:1000; left:12px; top:12px; width:320px; max-width:calc(100vw - 24px); max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px); margin:0; padding:0; border:1px solid var(--guide-border); border-radius:12px; background:var(--guide-bg); color:var(--text); box-shadow:0 5px 24px rgba(55,37,16,.22); font-family:"Hiragino Sans","Noto Sans JP",sans-serif; font-size:.875rem; font-weight:normal; line-height:1.55; text-align:left; overflow:visible; overflow-wrap:anywhere; isolation:isolate; }
+.tutorial-guide-content { position:relative; max-height:calc(100vh - 26px); max-height:calc(100dvh - 26px); padding:10px 12px 12px; border-radius:11px; background:var(--guide-bg); overflow:auto; overscroll-behavior:contain; }
+.tutorial-guide::before { position:absolute; width:12px; height:12px; border:1px solid var(--guide-border); background:var(--guide-bg); content:""; pointer-events:none; }
+.tutorial-guide:not([data-placement])::before { display:none; }
+.tutorial-guide[data-placement="top"]::before { left:clamp(16px,var(--tip-x,50%),calc(100% - 16px)); bottom:-7px; border-top:0; border-left:0; transform:translateX(-50%) rotate(45deg); }
+.tutorial-guide[data-placement="bottom"]::before { left:clamp(16px,var(--tip-x,50%),calc(100% - 16px)); top:-7px; border-right:0; border-bottom:0; transform:translateX(-50%) rotate(45deg); }
+.tutorial-guide[data-placement="left"]::before { top:clamp(16px,var(--tip-y,50%),calc(100% - 16px)); right:-7px; border-bottom:0; border-left:0; transform:translateY(-50%) rotate(45deg); }
+.tutorial-guide[data-placement="right"]::before { top:clamp(16px,var(--tip-y,50%),calc(100% - 16px)); left:-7px; border-top:0; border-right:0; transform:translateY(-50%) rotate(45deg); }
+.tutorial-guide .tutorial-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.tutorial-guide p.tutorial-eyebrow { margin:0; color:var(--accent); font-size:.73rem; font-weight:bold; line-height:1.4; letter-spacing:.04em; }
+.tutorial-guide .tutorial-exit { min-height:32px; padding:4px 9px; font-size:.78rem; font-weight:normal; line-height:1.4; }
+.tutorial-guide progress { display:block; width:100%; height:3px; margin:5px 0 8px; border:0; border-radius:20px; overflow:hidden; background:#eee4d5; accent-color:var(--accent); }
+.tutorial-guide progress::-webkit-progress-bar { border-radius:20px; background:#eee4d5; }
+.tutorial-guide progress::-webkit-progress-value { border-radius:20px; background:var(--accent); }
+.tutorial-guide progress::-moz-progress-bar { border-radius:20px; background:var(--accent); }
+.tutorial-guide h2 { margin:0 0 6px; color:var(--accent); font-size:.98rem; font-weight:bold; line-height:1.45; }
+.tutorial-guide p.tutorial-hint { margin:0; padding:0; color:var(--text); font-size:.85rem; font-weight:normal; line-height:1.65; }
+.tutorial-guide p.tutorial-feedback { margin:7px 0 0; color:var(--ok); font-size:.8rem; font-weight:bold; line-height:1.5; }
+.tutorial-guide p.tutorial-feedback.ng { color:var(--ng); }
+.tutorial-guide .tutorial-hint:empty, .tutorial-guide .tutorial-feedback:empty { display:none; }
+.tutorial-guide .tutorial-actions { display:flex; align-items:center; justify-content:flex-start; gap:6px; flex-wrap:wrap; margin:10px 0 0; text-align:left; }
+.tutorial-guide .tutorial-actions button { min-height:40px; margin:0; padding:7px 9px; font-size:.8rem; font-weight:normal; line-height:1.4; white-space:nowrap; }
+.tutorial-guide .tutorial-actions #btnTutorialNext { margin-left:auto; min-width:66px; font-weight:bold; }
+.tutorial-guide button:focus-visible, .tutorial-card button:focus-visible { outline:3px solid #1976d2; outline-offset:2px; }
+.tutorial-guide.is-typing progress, .tutorial-guide.is-typing h2, .tutorial-guide.is-typing .tutorial-hint, .tutorial-guide.is-typing .tutorial-feedback { display:none; }
+.tutorial-guide.is-typing .tutorial-guide-content { padding:6px 8px; }
+.tutorial-guide.is-typing .tutorial-exit { min-height:26px; padding:2px 8px; }
+.tutorial-guide.is-typing .tutorial-actions { margin-top:4px; }
+.tutorial-guide.is-typing .tutorial-actions button { min-height:32px; padding:4px 8px; }
+
 .tutorial-target { outline:3px solid #1976d2; outline-offset:3px; }
 .tree .node.tutorial-target rect { stroke:#1976d2; stroke-width:3px; }
 .cell.tutorial-from::after, .cell.tutorial-to::after { position:absolute; inset:3px; border:3px solid #1976d2; border-radius:3px; content:""; pointer-events:none; }
 .cell.tutorial-to::after { border-style:dashed; border-color:#237441; }
 html[data-board="dark"] .cell.tutorial-from::after { border-color:#7dc5ff; }
 html[data-board="dark"] .cell.tutorial-to::after { border-color:#8dddb0; }
-.tutorial-card button:focus-visible, .tutorial-entry:focus-visible { outline:3px solid #1976d2; outline-offset:3px; }
-.tutorial-dock { display:none; }
-@media (max-width:700px) {
-  body.in-tutorial { padding-bottom:calc(88px + env(safe-area-inset-bottom, 0px)); }
-  .tutorial-dock { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:8px; position:fixed; z-index:20; left:0; right:0; bottom:0; padding:8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--border); background:#fffaf4; box-shadow:0 -3px 14px rgba(62,43,20,.12); }
-  .tutorial-dock span { font-size:.78rem; font-weight:bold; line-height:1.5; color:var(--accent); overflow-wrap:anywhere; }
-  .tutorial-dock button { min-height:44px; padding:8px 10px; font-size:.85rem; white-space:nowrap; }
-  .tutorial-dock button:disabled { opacity:.45; cursor:not-allowed; }
-  .tutorial-dock button:focus-visible { outline:3px solid #1976d2; outline-offset:2px; }
-  .tutorial-dock .primary { min-width:68px; }
-}
 @media (max-width:600px) {
   .tutorial-card { padding:12px; }
   .tutorial-card h2 { font-size:1rem; }
@@ -244,11 +240,6 @@ html[data-board="dark"] .cell.tutorial-to::after { border-color:#8dddb0; }
   .tutorial-actions { gap:6px; }
   .tutorial-actions button { padding:8px 10px; font-size:.85rem; }
   .tutorial-completed { grid-template-columns:1fr; gap:4px; }
-}
-@media (max-width:380px) {
-  .app-header .header-tools { width:100%; justify-content:flex-end; }
-  .tutorial-actions #btnTutorialNext { flex:1; }
-  .tutorial-actions #btnTutorialImport { width:100%; }
 }
 @media (prefers-reduced-motion:reduce) {
   .cell.hint, .hand-piece.hint { animation:none; }
