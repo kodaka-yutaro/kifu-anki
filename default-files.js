@@ -46,7 +46,7 @@ const KifuDefaults = (() => {
   }
 
   function problemAt(book, branches, id, question, explanation) {
-    let node = book.root, position = S.initial();
+    let node = book.root, position = S.initial(S.handicapOf(book.root));
     for (const branch of branches) {
       node = node.children[branch];
       position = S.apply(position, node.move);

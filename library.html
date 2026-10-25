@@ -65,6 +65,26 @@
   <form id="newKifuForm">
     <label for="newKifuName">ファイル名</label>
     <input id="newKifuName" type="text" required maxlength="120" autocomplete="off" placeholder="例：四間飛車の定跡">
+    <label for="newKifuHandicap">手合割（初期盤面）</label>
+    <select id="newKifuHandicap">
+      <option value="平手">平手</option>
+      <option value="香落ち">香落ち</option>
+      <option value="右香落ち">右香落ち</option>
+      <option value="両香落ち">両香落ち</option>
+      <option value="角落ち">角落ち</option>
+      <option value="飛車落ち">飛車落ち</option>
+      <option value="飛香落ち">飛香落ち</option>
+      <option value="飛両香落ち">飛両香落ち</option>
+      <option value="二枚落ち">二枚落ち</option>
+      <option value="三枚落ち">三枚落ち</option>
+      <option value="四枚落ち">四枚落ち</option>
+      <option value="五枚落ち">五枚落ち</option>
+      <option value="六枚落ち">六枚落ち</option>
+      <option value="七枚落ち">七枚落ち</option>
+      <option value="八枚落ち">八枚落ち</option>
+      <option value="九枚落ち">九枚落ち</option>
+      <option value="十枚落ち">十枚落ち</option>
+    </select>
     <p id="newKifuError" class="form-error" role="alert"></p>
     <div class="problem-form-actions">
       <button id="btnCancelNewKifu" type="button">キャンセル</button>
@@ -98,10 +118,10 @@
   <p class="note" id="accountStatus"></p>
   <form method="dialog"><button>閉じる</button></form>
 </dialog>
-<script src="shogi.js?v=4"></script>
+<script src="shogi.js?v=5"></script>
 <script src="problems-store.js?v=1"></script>
-<script src="default-files.js?v=2"></script>
-<script src="library.js?v=4"></script>
-<script type="module" src="sync.js?v=4"></script>
+<script src="default-files.js?v=3"></script>
+<script src="library.js?v=5"></script>
+<script type="module" src="sync.js?v=5"></script>
 </body>
 </html>

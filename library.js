@@ -10,6 +10,7 @@ function validBooks(books) {
   const move = m => m && square(m.to) && (square(m.from) || (m.from === null && Shogi.HAND_ORDER.includes(m.t)));
   for (const b of books) {
     if (!b || typeof b.title !== "string" || !b.root) return false;
+    if (b.root.handicap !== undefined && !Shogi.HANDICAPS.includes(b.root.handicap)) return false;
     const stack = [b.root];
     while (stack.length) {
       const n = stack.pop();
@@ -105,9 +106,10 @@ function renderMine() {
     }
     data.books.forEach((b, i) => {
       const { depth, leaves } = stats(b.root);
+      const handicap = Shogi.handicapOf(b.root);
       ul.appendChild(item({
         title: b.title,
-        sub: depth ? `${depth}手・変化${leaves}通り` : "まだ手がありません",
+        sub: (depth ? `${depth}手・変化${leaves}通り` : "まだ手がありません") + (handicap !== "平手" ? `・${handicap}` : ""),
         kind: "kifu",
         href: "index.html",
         onOpen: () => {
@@ -253,9 +255,12 @@ async function restore(file) {
     const data = loadData(), collections = P.load();
     let added = 0, merged = 0;
     for (const b of imported.books) {
-      const same = data.books.find(x => x.title === b.title);
+      const same = data.books.find(x => x.title === b.title && Shogi.handicapOf(x.root) === Shogi.handicapOf(b.root));
       if (same) { mergeTree(same.root, b.root); merged++; }
-      else { data.books.push(b); added++; }
+      else {
+        if (data.books.some(x => x.title === b.title)) b.title = uniqueKifuTitle(b.title, data.books);
+        data.books.push(b); added++;
+      }
     }
     const nextCollections = P.mergeCollections(collections, imported.collections);
     const oldBooks = localStorage.getItem(STORE_KEY), oldCollections = localStorage.getItem(P.KEY);
@@ -275,6 +280,7 @@ async function restore(file) {
 }
 
 function mergeTree(dst, src) {
+  if (!dst.children.length) { if (src.handicap) dst.handicap = src.handicap; else delete dst.handicap; }
   if (src.comment && !(dst.comment || "").includes(src.comment)) dst.comment = dst.comment ? dst.comment + "\n" + src.comment : src.comment;
   for (const c of src.children) {
     const same = dst.children.find(d => Shogi.moveEq(d.move, c.move));
@@ -292,6 +298,7 @@ $("kifuFileInput").onchange = event => {
 };
 $("btnNewKifu").onclick = () => {
   $("newKifuName").value = "";
+  $("newKifuHandicap").value = "平手";
   $("newKifuError").textContent = "";
   $("newKifuDialog").showModal();
   $("newKifuName").focus();
@@ -303,7 +310,7 @@ $("newKifuForm").onsubmit = event => {
     const title = $("newKifuName").value.trim();
     if (!title) throw new Error("ファイル名を入力してください。");
     const data = loadData();
-    data.books.push({ title: uniqueKifuTitle(title, data.books), root: Shogi.newNode(null) });
+    data.books.push({ title: uniqueKifuTitle(title, data.books), root: Shogi.newRoot($("newKifuHandicap").value) });
     data.current = data.books.length - 1;
     if (!saveData(data)) throw new Error("棋譜を保存できませんでした。ブラウザの保存設定・空き容量を確認してください。");
     $("newKifuDialog").close();

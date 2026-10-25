@@ -24,8 +24,9 @@ function tutorialAction(type, detail = {}) {
 }
 
 const cur = () => path[path.length - 1];
+const startPosition = () => S.initial(book ? S.handicapOf(book.root) : "平手");
 function position() {
-  let pos = S.initial();
+  let pos = startPosition();
   for (let i = 1; i < path.length; i++) pos = S.apply(pos, path[i].move);
   return pos;
 }
@@ -46,7 +47,7 @@ function load() {
     const data = JSON.parse(localStorage.getItem(STORE_KEY));
     if (data && Array.isArray(data.books)) {
       hasStoredBooks = !!data.books.length;
-      books = data.books.length ? data.books : [{ title: "新しい棋譜", root: S.newNode(null) }];
+      books = data.books.length ? data.books : [{ title: "新しい棋譜", root: S.newRoot() }];
       book = books[data.current] || books[0];
       return;
     }
@@ -70,6 +71,8 @@ function pathTo(node) {
   return p;
 }
 function mergeTree(dst, src) {
+  // 手順がまだない棋譜に合流するときは、読み込んだ側の手合割（初期盤面）を引き継ぐ
+  if (!dst.children.length) { if (src.handicap) dst.handicap = src.handicap; else delete dst.handicap; }
   if (src.comment && !(dst.comment || "").includes(src.comment)) {
     dst.comment = dst.comment ? dst.comment + "\n" + src.comment : src.comment;
   }
@@ -102,10 +105,16 @@ function canInput(pos) {
 
 // 暗記中は、自分の直前の手から現在までのコメントをまとめて見せる（相手の自動指しで流れないように）
 function drillComment() {
-  const userMoveAt = i => mode === "both" || (mode === "sente") === (i % 2 === 1);
+  // 何手目が自分の手かは初期局面の手番から決める（駒落ちは後手番から始まる）
+  const userAt = [false];
+  let scan = startPosition();
+  for (let i = 1; i < path.length; i++) {
+    userAt[i] = mode === "both" || (mode === "sente") === scan.turn;
+    scan = S.apply(scan, path[i].move);
+  }
   let start = path.length - 1;
-  while (start > 0 && !userMoveAt(start)) start--;
-  let pos = S.initial();
+  while (start > 0 && !userAt[start]) start--;
+  let pos = startPosition();
   const parts = [];
   for (let i = 1; i < path.length; i++) {
     if (i >= start && path[i].comment) parts.push({ label: S.label(pos, path[i].move, path[i - 1].move && path[i - 1].move.to), text: path[i].comment });
@@ -130,7 +139,8 @@ function render() {
   c.hidden = covered;
   $("commentCover").hidden = !covered;
   if (mode === "edit") {
-    $("progress").textContent = `${path.length - 1}手目` + (cur().children.length > 1 ? `　（分岐 ${cur().children.length}）` : "");
+    const handicap = S.handicapOf(book.root);
+    $("progress").textContent = `${path.length - 1}手目` + (handicap !== "平手" ? `　手合割：${handicap}` : "") + (cur().children.length > 1 ? `　（分岐 ${cur().children.length}）` : "");
   } else if (drill) {
     const total = countLeaves(book.root, () => true);
     const done = countLeaves(book.root, n => drill.done.has(n));
@@ -220,7 +230,7 @@ function renderTree() {
       walk(c, next, depth + 1, r, node.move && node.move.to);
     });
   };
-  walk(book.root, S.initial(), 0, 0, null);
+  walk(book.root, startPosition(), 0, 0, null);
   const maxDepth = Math.max(...items.filter(it => !it.edge).map(it => it.depth));
   const width = (maxDepth + 1) * W + PAD * 2, height = (rows + 1) * H + PAD * 2;
   const x = d => PAD + d * W, y = r => PAD + r * H;
@@ -429,6 +439,7 @@ function setMode(m) {
     setMsg("駒を動かして手順を登録できます。");
     render();
   } else startDrill();
+  if (book) refreshBooks();
   tutorialAction("mode", { mode: m });
 }
 
@@ -436,6 +447,33 @@ function refreshBooks() {
   const title = $("currentBookTitle");
   title.textContent = book.title;
   title.title = book.title;
+  const select = $("handicapSelect");
+  if (select) {
+    select.value = S.handicapOf(book.root);
+    select.disabled = !!tutorialSession || mode !== "edit";
+  }
+}
+
+// 手合割を変えると初期盤面が変わり、登録済みの手順は意味を失うため、空の棋譜以外は手順を消してから変える
+function changeHandicap(name) {
+  const next = S.normalizeHandicap(name);
+  if (!next || !book || next === S.handicapOf(book.root)) { refreshBooks(); return; }
+  if (tutorialSession) { refreshBooks(); return; }
+  if (book.root.children.length &&
+    !confirm(`手合割を「${next}」に変えると、登録した手順はすべて削除されます。よろしいですか？`)) {
+    refreshBooks();
+    return;
+  }
+  const root = S.newRoot(next);
+  root.comment = book.root.comment || "";
+  book.root = root;
+  path = [root];
+  sel = null; hint = null;
+  save();
+  render();
+  refreshBooks();
+  setMsg(next === "平手" ? "平手の初期盤面にしました。" : `${next}の初期盤面にしました。上手（後手）から指し始めます。`, "ok");
+  tutorialAction("handicap", { handicap: next });
 }
 
 function selectBook(b) {
@@ -448,7 +486,7 @@ function selectBook(b) {
 function newBook() {
   const title = prompt("定跡の名前", "新しい定跡");
   if (!title) return;
-  const b = { title, root: S.newNode(null) };
+  const b = { title, root: S.newRoot() };
   books.push(b);
   selectBook(b);
   if (mode !== "edit") setMode("edit");
@@ -487,8 +525,12 @@ async function importFiles(files) {
     }
   }
   if (!parsed.length || importSession !== tutorialSession || generation !== importGeneration) return;
+  // 手合割（初期盤面）が違う棋譜同士は合流できないので、新しい定跡として取り込む
+  const differentHandicap = parsed.some(p => S.handicapOf(p.root) !== S.handicapOf(book.root));
+  const forcedNew = differentHandicap && !isLeaf(book.root);
   let choice = "new";
-  if (isLeaf(book.root)) choice = "fill";
+  if (forcedNew) choice = "new";
+  else if (isLeaf(book.root)) choice = "fill";
   else {
     $("importText").textContent = parsed.length > 1
       ? `${parsed.length}個のファイルを読み込みます。`
@@ -512,7 +554,7 @@ async function importFiles(files) {
   refreshBooks();
   save();
   setMode("edit");
-  setMsg("読み込みました。", "ok");
+  setMsg(forcedNew ? "手合割が違うため、新しい定跡として読み込みました。" : "読み込みました。", "ok");
   tutorialAction("import");
 }
 
@@ -573,6 +615,7 @@ function init() {
     setMsg("コメントを保存できませんでした。書き出してからファイル画面へ移動してください。", "ng");
   });
   $("btnNew").onclick = newBook;
+  $("handicapSelect").onchange = e => changeHandicap(e.target.value);
   $("btnImport").onclick = () => $("fileInput").click();
   $("fileInput").onchange = e => { importFiles([...e.target.files]); e.target.value = ""; };
   $("btnExport").onclick = exportKIF;
@@ -583,7 +626,7 @@ function init() {
   $("btnDelete").onclick = () => {
     if (!confirm(`「${book.title}」を削除しますか？`)) return;
     books.splice(books.indexOf(book), 1);
-    if (!books.length) books.push({ title: "新しい定跡", root: S.newNode(null) });
+    if (!books.length) books.push({ title: "新しい定跡", root: S.newRoot() });
     selectBook(books[0]);
   };
   document.querySelectorAll(".modes button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
@@ -667,7 +710,7 @@ async function openLinkedKif() {
     const header = text.match(/^表題[：:](.+)$/m);
     const title = header ? header[1].trim() : file;
     const root = S.parseKIF(text);
-    const existing = books.find(b => b.title === title);
+    const existing = books.find(b => b.title === title && S.handicapOf(b.root) === S.handicapOf(root));
     if (existing) mergeTree(existing.root, root);
     else books.push({ title, root });
     selectBook(existing || books[books.length - 1]);

@@ -16,7 +16,7 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"棋譜暗記道場","alternateName":"棋譜暗記サイト","url":"https://kifu.kdking-tools.com/","applicationCategory":"GameApplication","operatingSystem":"Web","inLanguage":"ja","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"description":"将棋の棋譜や定跡をツリーで管理し、盤上で指して暗記できる無料の棋譜暗記サイト。KIFファイルの読み込み・書き出しに対応。"}
 </script>
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 <link rel="stylesheet" href="fonts/pieces-fonts.css?v=1">
 <link rel="stylesheet" href="pieces.css?v=3">
 <link rel="stylesheet" href="problem-editor.css?v=1">
@@ -57,6 +57,27 @@
   </div>
   <div class="bar" aria-label="開いている棋譜の操作">
     <button id="btnNew" class="icon" title="新しい定跡">＋</button>
+    <label class="handicap-label" for="handicapSelect">手合割
+      <select id="handicapSelect" title="初期盤面の手合割を選ぶ">
+        <option value="平手">平手</option>
+        <option value="香落ち">香落ち</option>
+        <option value="右香落ち">右香落ち</option>
+        <option value="両香落ち">両香落ち</option>
+        <option value="角落ち">角落ち</option>
+        <option value="飛車落ち">飛車落ち</option>
+        <option value="飛香落ち">飛香落ち</option>
+        <option value="飛両香落ち">飛両香落ち</option>
+        <option value="二枚落ち">二枚落ち</option>
+        <option value="三枚落ち">三枚落ち</option>
+        <option value="四枚落ち">四枚落ち</option>
+        <option value="五枚落ち">五枚落ち</option>
+        <option value="六枚落ち">六枚落ち</option>
+        <option value="七枚落ち">七枚落ち</option>
+        <option value="八枚落ち">八枚落ち</option>
+        <option value="九枚落ち">九枚落ち</option>
+        <option value="十枚落ち">十枚落ち</option>
+      </select>
+    </label>
     <button id="btnImport" title="KIFファイルを読み込む">読込</button>
     <button id="btnExport" title="KIFファイルとして保存">書出</button>
     <button id="btnRename" class="icon" title="名前を変更">✎</button>
@@ -135,6 +156,7 @@
   <p class="tutorial-help">6手の練習用の定跡で、実際に駒を動かして使い方を覚えられます。いつでも終了して、元の棋譜に戻れます。<br><button id="btnHelpTutorial" type="button">チュートリアルを始める</button></p>
   <h3>定跡をつくる（編集）</h3>
   <ul>
+    <li>「手合割」で初期盤面を選べます。平手以外（香落ち・角落ち・二枚落ちなど）は上手の駒を落とした盤面から始まり、上手（後手）から指し始めます。手順を登録したあとで手合割を変えると、手順は削除されます。</li>
     <li>駒をタップして移動先をタップすると手が登録されます。持ち駒は盤の上下の駒をタップして打てます。</li>
     <li>途中の局面に戻って別の手を指すと、変化（分岐）として追加されます。</li>
     <li>下の定跡ツリーの手をタップすると、その局面に移動します。</li>
@@ -273,12 +295,12 @@
   </div>
 </section>
 
-<script src="shogi.js?v=4"></script>
+<script src="shogi.js?v=5"></script>
 <script src="problems-store.js?v=1"></script>
-<script src="default-files.js?v=2"></script>
-<script src="app.js?v=10"></script>
+<script src="default-files.js?v=3"></script>
+<script src="app.js?v=11"></script>
 <script src="problem-editor.js?v=2"></script>
 <script src="tutorial.js?v=3"></script>
-<script type="module" src="sync.js?v=4"></script>
+<script type="module" src="sync.js?v=5"></script>
 </body>
 </html>

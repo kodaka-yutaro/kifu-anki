@@ -17,14 +17,51 @@ const Shogi = (() => {
     ".........", "PPPPPPPPP", ".B.....R.", "LNSGKGSNL"
   ];
 
+  // 手合割：上手（後手側）が落とす駒の [筋, 段]。
+  // 落とす順は大駒→香→桂→銀→金、同種は上手の左側（1筋側）から。
+  const L_L = [1, 1], L_R = [9, 1], BISHOP = [2, 2], ROOK = [8, 2];
+  const N_L = [2, 1], N_R = [8, 1], S_L = [3, 1], S_R = [7, 1], G_L = [4, 1], G_R = [6, 1];
+  const HANDICAP_DROPS = {
+    "平手": [],
+    "香落ち": [L_L],
+    "右香落ち": [L_R],
+    "両香落ち": [L_L, L_R],
+    "角落ち": [BISHOP],
+    "飛車落ち": [ROOK],
+    "飛香落ち": [ROOK, L_L],
+    "飛両香落ち": [ROOK, L_L, L_R],
+    "二枚落ち": [ROOK, BISHOP],
+    "三枚落ち": [ROOK, BISHOP, L_L],
+    "四枚落ち": [ROOK, BISHOP, L_L, L_R],
+    "五枚落ち": [ROOK, BISHOP, L_L, L_R, N_L],
+    "六枚落ち": [ROOK, BISHOP, L_L, L_R, N_L, N_R],
+    "七枚落ち": [ROOK, BISHOP, L_L, L_R, N_L, N_R, S_L],
+    "八枚落ち": [ROOK, BISHOP, L_L, L_R, N_L, N_R, S_L, S_R],
+    "九枚落ち": [ROOK, BISHOP, L_L, L_R, N_L, N_R, S_L, S_R, G_L],
+    "十枚落ち": [ROOK, BISHOP, L_L, L_R, N_L, N_R, S_L, S_R, G_L, G_R]
+  };
+  const HANDICAPS = Object.keys(HANDICAP_DROPS);
+  const HANDICAP_ALIASES = { "飛落ち": "飛車落ち", "飛車香落ち": "飛香落ち" };
+  function normalizeHandicap(value) {
+    if (value === undefined || value === null || value === "") return "平手";
+    const name = String(value).replace(/[\s　]/g, "");
+    const canonical = HANDICAP_ALIASES[name] || name;
+    return Object.hasOwn(HANDICAP_DROPS, canonical) ? canonical : null;
+  }
+  const handicapOf = root => normalizeHandicap(root && root.handicap) || "平手";
+
   // 盤は sq[筋][段]（1〜9）。駒は { t:'p', s:先手か, pr:成りか }。turn は先手番なら true。
-  function initial() {
+  // 駒落ちは上手（後手側）から指し始めるので、平手以外は turn: false で始まる。
+  function initial(handicap) {
+    const name = normalizeHandicap(handicap);
+    if (name === null) throw new Error(`対応していない手合割です（${handicap}）`);
     const sq = Array.from({ length: 10 }, () => Array(10).fill(null));
     INITIAL.forEach((row, i) => [...row].forEach((c, j) => {
       if (c !== ".") sq[9 - j][i + 1] = { t: c.toLowerCase(), s: c === c.toUpperCase(), pr: false };
     }));
+    for (const [f, r] of HANDICAP_DROPS[name]) sq[f][r] = null;
     const hand = () => ({ r:0, b:0, g:0, s:0, n:0, l:0, p:0 });
-    return { sq, hands: { true: hand(), false: hand() }, turn: true };
+    return { sq, hands: { true: hand(), false: hand() }, turn: name === "平手" };
   }
 
   function clone(pos) {
@@ -179,27 +216,40 @@ const Shogi = (() => {
   }
 
   const newNode = move => ({ move, comment: "", children: [] });
+  function newRoot(handicap) {
+    const root = newNode(null);
+    // 平手は従来の保存データと同じ形にするため、handicap は平手以外だけ付ける
+    const name = normalizeHandicap(handicap);
+    if (name && name !== "平手") root.handicap = name;
+    return root;
+  }
 
   function addComment(node, text) {
     node.comment = node.comment ? node.comment + "\n" + text : text;
   }
 
-  // KIF テキスト → 定石ツリー（根ノード）
+  // KIF テキスト → 定石ツリー（根ノード）。手合割は root.handicap に保持する。
   function parseKIF(text) {
-    const root = newNode(null);
-    const line = [root];
-    const positions = [initial()];
-    let last = root;
     const lines = text.replace(/^﻿/, "").split(/\r?\n/);
+    // 手合割は指し手より前に書かれるが、初期局面を決めるため先に読み取る。
+    let handicap = "平手";
+    lines.forEach((raw, i) => {
+      const m = raw.replace(/^[\s　]+/, "").match(/^手合割[：:](.*)$/);
+      if (!m) return;
+      const name = normalizeHandicap(m[1]);
+      if (name === null) throw new Error(`対応していない手合割です（${i + 1}行目：${m[1].trim()}）`);
+      handicap = name;
+    });
+    const root = newRoot(handicap);
+    const line = [root];
+    const positions = [initial(handicap)];
+    let last = root;
     lines.forEach((raw, i) => {
       const s = raw.replace(/^[\s　]+/, "").replace(/\s+$/, "");
       if (!s || s.startsWith("#") || s.startsWith("&")) return;
       if (s.startsWith("*")) { addComment(last, s.replace(/^\*/, "")); return; }
       let m = s.match(/^手合割[：:](.*)$/);
-      if (m) {
-        if (!/平手/.test(m[1])) throw new Error(`平手以外の棋譜には対応していません（${i + 1}行目）`);
-        return;
-      }
+      if (m) return;
       m = s.match(/^変化[：:]\s*(\d+)手/);
       if (m) {
         const n = +m[1];
@@ -232,9 +282,10 @@ const Shogi = (() => {
 
   // 定石ツリー → KIF テキスト（最初の子を本譜、残りを変化として書き出す）
   function toKIF(title, root) {
+    const handicap = handicapOf(root);
     const out = ["#KIF version=2.0 encoding=UTF-8", "# ---- 棋譜暗記道場 で作成 ----"];
     if (title) out.push("表題：" + title);
-    out.push("手合割：平手", "先手：", "後手：", "手数----指手---------消費時間--");
+    out.push("手合割：" + handicap, "先手：", "後手：", "手数----指手---------消費時間--");
     const comment = node => {
       if (node.comment) node.comment.split("\n").forEach(l => out.push("*" + l));
     };
@@ -264,13 +315,13 @@ const Shogi = (() => {
       }
     };
     comment(root);
-    writeLine(root, initial(), 0);
+    writeLine(root, initial(handicap), 0);
     return out.join("\r\n") + "\r\n";
   }
 
   return {
-    NAME, PRO_CHAR, HAND_ORDER, KANJI, initial, apply, destinations, dropTargets,
-    canPromote, mustPromote, moveEq, label, moveText, parseKIF, toKIF, newNode, sameSq
+    NAME, PRO_CHAR, HAND_ORDER, KANJI, HANDICAPS, normalizeHandicap, handicapOf, initial, apply, destinations, dropTargets,
+    canPromote, mustPromote, moveEq, label, moveText, parseKIF, toKIF, newNode, newRoot, sameSq
   };
 })();
 if (typeof module !== "undefined") module.exports = Shogi;

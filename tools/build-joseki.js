@@ -28,7 +28,7 @@ function analyze(root) {
     }
     return pos;
   };
-  const finalPos = follow(root, S.initial(), 0, main);
+  const finalPos = follow(root, S.initial(S.handicapOf(root)), 0, main);
   variations.sort((a, b) => a.from - b.from);
   return { main, variations, finalPos };
 }

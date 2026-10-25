@@ -2,7 +2,7 @@
 
 将棋の定跡をツリーで管理し、盤上で指しながら暗記する練習サイトです（静的サイト / GitHub Pages）。
 
-- `shogi.js`：駒の動き・指し手・KIF の読み書き
+- `shogi.js`：駒の動き・指し手・KIF の読み書き。手合割（平手・香落ち・角落ち・飛車落ち・二枚落ち〜十枚落ちなど17種）に対応し、初期盤面は棋譜（root.handicap）に保持する。駒落ちは上手（後手）から指し始める
 - `app.js`：画面（編集・暗記モード、定跡ツリー、コメント）。データはブラウザの localStorage に保存
 - `tutorial.js`：6手の定跡を使った、操作対象の近くに指示を出すチュートリアル
 - `library.html` / `library.js` / `library.css`：棋譜ファイルと次の一手ブックの一覧・棋譜の読み込み・バックアップ
@@ -14,6 +14,10 @@
 - `fonts/`：駒の丸文字・筆文字に使う日本語フォントの小さなサブセットとライセンス
 - サンプル定跡は `default-files.js` の `SAMPLE_KIF` にあります
 - 定跡解説ページ（`joseki/`）は `tools/joseki-data.js` を編集して `node tools/build-joseki.js` で生成します（sitemap.xml も更新）
+
+## 手合割（初期盤面）
+
+盤面ページの「手合割」プルダウンと、ファイル画面の新規作成ダイアログで初期盤面を選べます。平手以外を選ぶと上手の駒を落とした盤面から始まります。KIFの読み込み・書き出しでも手合割は保持され、駒落ち棋譜（初手が上手の手）もそのまま読めます。手合割の違う棋譜同士は合流せず、新しい棋譜として取り込みます。手順を登録したあとで手合割を変えると、手順は削除されます（確認あり）。
 
 ## 盤と駒
 
@@ -83,4 +87,5 @@ node tools/test-problem-library.js
 node tools/test-problem-sync.js
 node tools/test-default-files.js
 node tools/test-library-import.js
+node tools/test-handicap.js
 ```

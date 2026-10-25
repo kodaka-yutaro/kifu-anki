@@ -16,6 +16,8 @@ html.no-arrows .arrow { display:none; }
 main { max-width:960px; margin:0 auto; padding:0 16px; }
 .bar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin:10px 0; }
 .bar select { flex:1; min-width:160px; }
+.bar .handicap-label { display:flex; align-items:center; gap:6px; font-size:.9rem; color:var(--muted); }
+.bar .handicap-label select { flex:none; min-width:0; width:auto; }
 .board-file-heading { display:flex; align-items:center; gap:14px; margin:16px 0 8px; min-width:0; }
 .file-return { display:inline-flex; align-items:center; min-height:40px; color:var(--accent); font-size:.85rem; font-weight:bold; white-space:nowrap; text-decoration:none; }
 .file-return:hover { text-decoration:underline; }

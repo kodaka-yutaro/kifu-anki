@@ -61,6 +61,7 @@ const setMeta = m => writeJSON(SYNC_KEY, m);
 
 const moveEq = (a, b) => window.Shogi ? Shogi.moveEq(a, b) : JSON.stringify(a) === JSON.stringify(b);
 function mergeTree(dst, src) {
+  if (!dst.children.length) { if (src.handicap) dst.handicap = src.handicap; else delete dst.handicap; }
   if (src.comment && !(dst.comment || "").includes(src.comment)) {
     dst.comment = dst.comment ? dst.comment + "\n" + src.comment : src.comment;
   }
@@ -69,11 +70,12 @@ function mergeTree(dst, src) {
     if (same) mergeTree(same, c); else dst.children.push(c);
   }
 }
-// 同じ名前の棋譜は変化を合流させ、ほかは追加する
+// 同じ名前の棋譜は変化を合流させ、ほかは追加する（手合割が違う棋譜は合流しない）
 function mergeBooks(base, extra) {
+  const handicap = root => (window.Shogi && Shogi.handicapOf(root)) || "平手";
   const out = base.slice();
   for (const b of extra) {
-    const same = out.find(x => x.title === b.title);
+    const same = out.find(x => x.title === b.title && handicap(x.root) === handicap(b.root));
     if (same) mergeTree(same.root, b.root); else out.push(b);
   }
   return out;
