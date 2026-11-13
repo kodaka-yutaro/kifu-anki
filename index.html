@@ -114,6 +114,11 @@
         <button id="btnLast" class="arrow" title="最後へ">⏭</button>
         <button id="btnCut" title="この手以降を削除">この手を削除</button>
       </div>
+      <section id="candidateSection" class="candidate-section" hidden aria-labelledby="candidateTitle">
+        <h3 id="candidateTitle">候補手 <small>入力済み</small></h3>
+        <div id="candidateMoves" class="candidate-moves"></div>
+      </section>
+      <button id="btnBranchComment" type="button" disabled>分岐にコメント</button>
       <div class="buttons" id="drillButtons" hidden>
         <button id="btnAnswer">答え</button>
         <button id="btnContinue" class="primary" hidden>次の変化へ ▶</button>
@@ -151,6 +156,13 @@
   <a href="library.html">棋譜を選ぶ</a> ・ <a href="joseki/">定跡解説</a> ・ <a href="oboekata.html">棋譜の覚え方</a> ・ <a href="about.html">運営者情報・お問い合わせ</a> ・ <a href="privacy.html">プライバシーポリシー</a> ・ © 2026 棋譜暗記道場
 </footer>
 
+<dialog id="branchCommentDialog" class="dialog branch-comment-dialog" aria-labelledby="branchCommentHeading">
+  <h2 id="branchCommentHeading">分岐にコメント</h2>
+  <p id="branchCommentTarget"></p>
+  <p class="note">この局面へ進んだ手の辺に表示します。空欄で保存すると削除できます。</p>
+  <textarea id="branchCommentText" class="comment" aria-label="分岐コメント" placeholder="この手の狙い・分岐のポイント"></textarea>
+  <div class="row"><button id="btnCancelBranchComment" type="button">キャンセル</button><button id="btnSaveBranchComment" type="button" class="primary">保存</button></div>
+</dialog>
 <dialog id="helpDialog" class="dialog">
   <h2>使い方</h2>
   <p class="tutorial-help">6手の練習用の定跡で、実際に駒を動かして使い方を覚えられます。いつでも終了して、元の棋譜に戻れます。<br><button id="btnHelpTutorial" type="button">チュートリアルを始める</button></p>
@@ -298,9 +310,11 @@
 <script src="shogi.js?v=5"></script>
 <script src="problems-store.js?v=1"></script>
 <script src="default-files.js?v=3"></script>
-<script src="app.js?v=11"></script>
+<script src="branch-features.js?v=1"></script>
+<script src="app.js?v=12"></script>
 <script src="problem-editor.js?v=2"></script>
 <script src="tutorial.js?v=3"></script>
 <script type="module" src="sync.js?v=5"></script>
 </body>
 </html>
+

@@ -76,6 +76,9 @@ function mergeTree(dst, src) {
   if (src.comment && !(dst.comment || "").includes(src.comment)) {
     dst.comment = dst.comment ? dst.comment + "\n" + src.comment : src.comment;
   }
+  if (src.edgeComment && !(dst.edgeComment || "").includes(src.edgeComment)) {
+    dst.edgeComment = dst.edgeComment ? dst.edgeComment + "\n" + src.edgeComment : src.edgeComment;
+  }
   for (const c of src.children) {
     const same = dst.children.find(d => S.moveEq(d.move, c.move));
     if (same) mergeTree(same, c); else dst.children.push(c);
@@ -130,6 +133,7 @@ function render() {
   renderBoard(pos);
   renderHands(pos);
   renderTree();
+  renderCandidates(pos);
   const c = $("comment");
   c.value = mode === "edit" ? cur().comment || "" : drillComment();
   c.readOnly = mode !== "edit";
@@ -148,6 +152,59 @@ function render() {
   }
   if (window.KifuProblemEditor) window.KifuProblemEditor.refresh();
   tutorialAction("render");
+}
+
+
+function renderCandidates(pos) {
+  const section = $("candidateSection"), list = $("candidateMoves");
+  if (!section || !list) return;
+  section.hidden = mode !== "edit" || !cur().children.length || !!tutorialSession;
+  list.innerHTML = "";
+  if (!section.hidden) {
+    const parent = cur();
+    parent.children.forEach((child, i) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "candidate-move";
+      const origin = child.move.from ? "（" + child.move.from.join("") + "）" : "";
+      button.textContent = S.label(pos, child.move, prevToOf(parent)) + origin;
+      button.title = (i === 0 ? "本線" : "分岐") + (child.edgeComment ? "：" + child.edgeComment : "");
+      button.onclick = () => {
+        if (mode !== "edit" || tutorialSession || cur() !== parent) return;
+        play(child.move, position());
+      };
+      list.appendChild(button);
+    });
+  }
+  const button = $("btnBranchComment");
+  if (button) {
+    button.hidden = mode !== "edit" || !!tutorialSession;
+    button.disabled = path.length < 2;
+    button.title = path.length < 2 ? "コメントを付けたい手を指してから押してください" : "直前に指した手の辺へコメントを付けます";
+  }
+}
+
+let edgeEditingNode = null;
+function openBranchComment() {
+  if (mode !== "edit" || tutorialSession || path.length < 2) return;
+  edgeEditingNode = cur();
+  let pos = startPosition();
+  for (let i = 1; i < path.length - 1; i++) pos = S.apply(pos, path[i].move);
+  $("branchCommentTarget").textContent = (path.length - 1) + "手目 " + S.label(pos, cur().move, prevToOf(path[path.length - 2]));
+  $("branchCommentText").value = cur().edgeComment || "";
+  $("branchCommentDialog").showModal();
+  $("branchCommentText").focus();
+}
+function saveBranchComment() {
+  if (!edgeEditingNode || mode !== "edit" || tutorialSession || !pathTo(edgeEditingNode).includes(book.root)) return;
+  const value = $("branchCommentText").value.trim();
+  if (value) edgeEditingNode.edgeComment = value;
+  else delete edgeEditingNode.edgeComment;
+  const saved = save();
+  $("branchCommentDialog").close();
+  edgeEditingNode = null;
+  render();
+  setMsg(saved ? (value ? "分岐コメントを保存しました。" : "分岐コメントを削除しました。") : "保存できませんでした。書出で棋譜を保存してください。", saved ? "ok" : "ng");
 }
 
 function renderBoard(pos) {
@@ -214,7 +271,7 @@ function renderHands(pos) {
 
 // 定跡ツリー：横に手数、縦に変化。最初の子は親と同じ行に置く。
 function renderTree() {
-  const W = 90, H = 30, BW = 80, BH = 22, PAD = 6;
+  const W = 90, H = 36, BW = 80, BH = 22, PAD = 8;
   parentOf = new Map();
   const items = [];
   let rows = 0;
@@ -226,14 +283,24 @@ function renderTree() {
     node.children.forEach((c, i) => {
       parentOf.set(c, node);
       const r = i === 0 ? row : ++rows;
-      items.push({ edge: true, from: [depth, row], to: [depth + 1, r] });
+      items.push({ edge: true, node: c, from: [depth, row], to: [depth + 1, r] });
       walk(c, next, depth + 1, r, node.move && node.move.to);
     });
   };
   walk(book.root, startPosition(), 0, 0, null);
   const maxDepth = Math.max(...items.filter(it => !it.edge).map(it => it.depth));
-  const width = (maxDepth + 1) * W + PAD * 2, height = (rows + 1) * H + PAD * 2;
-  const x = d => PAD + d * W, y = r => PAD + r * H;
+
+  const gaps = Array(maxDepth + 1).fill(W - BW);
+  const rowHeights = Array(rows + 1).fill(H);
+  for (const it of items) if (it.edge && it.node.edgeComment && mode === "edit") {
+    gaps[it.to[0]] = 174;
+    rowHeights[it.to[1]] = Math.max(rowHeights[it.to[1]], BH + 18 + KifuBranches.lines(it.node.edgeComment).length * 16);
+  }
+  const xs = [PAD], ys = [PAD];
+  for (let d = 1; d <= maxDepth; d++) xs[d] = xs[d - 1] + BW + gaps[d];
+  for (let r = 1; r <= rows; r++) ys[r] = ys[r - 1] + rowHeights[r - 1];
+  const width = xs[maxDepth] + BW + PAD, height = ys[rows] + rowHeights[rows] + PAD;
+  const x = d => xs[d], y = r => ys[r];
   let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
   for (const it of items) if (it.edge) {
     const [d1, r1] = it.from, [d2, r2] = it.to;
@@ -241,6 +308,17 @@ function renderTree() {
     svg += r1 === r2
       ? `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="edge"/>`
       : `<path d="M${x1 - BW / 2 + 4} ${y1 + BH / 2} V${y2} H${x2}" class="edge" fill="none"/>`;
+  }
+
+  for (const it of items) if (it.edge && it.node.edgeComment && mode === "edit") {
+    const lines = KifuBranches.lines(it.node.edgeComment);
+    const tx = x(it.to[0]) - 168, ty = y(it.to[1]) + BH + 3;
+    svg += '<g class="edge-comment"><title>' + KifuBranches.escape(it.node.edgeComment) + '</title>';
+    svg += '<rect x="' + tx + '" y="' + ty + '" width="160" height="' + (lines.length * 16 + 8) + '" rx="4"/>';
+    lines.forEach((line, i) => {
+      svg += '<text x="' + (tx + 5) + '" y="' + (ty + 16 + i * 16) + '">' + KifuBranches.escape(line) + '</text>';
+    });
+    svg += '</g>';
   }
   for (const it of items) if (!it.edge) {
     const n = it.node;
@@ -275,7 +353,7 @@ function renderTree() {
   });
   const curEl = tree.querySelector("g.current");
   if (curEl) {
-    const it = items.find(i => i.node === cur());
+    const it = items.find(i => !i.edge && i.node === cur());
     const cx = x(it.depth), cy = y(it.row);
     if (cx < tree.scrollLeft || cx + BW > tree.scrollLeft + tree.clientWidth) tree.scrollLeft = cx - tree.clientWidth / 2;
     if (cy < tree.scrollTop || cy + BH > tree.scrollTop + tree.clientHeight) tree.scrollTop = cy - tree.clientHeight / 2;
@@ -615,6 +693,10 @@ function init() {
     setMsg("コメントを保存できませんでした。書き出してからファイル画面へ移動してください。", "ng");
   });
   $("btnNew").onclick = newBook;
+  $("btnBranchComment").onclick = openBranchComment;
+  $("btnSaveBranchComment").onclick = saveBranchComment;
+  $("btnCancelBranchComment").onclick = () => $("branchCommentDialog").close();
+  $("branchCommentDialog").addEventListener("close", () => { edgeEditingNode = null; });
   $("handicapSelect").onchange = e => changeHandicap(e.target.value);
   $("btnImport").onclick = () => $("fileInput").click();
   $("fileInput").onchange = e => { importFiles([...e.target.files]); e.target.value = ""; };
@@ -810,3 +892,4 @@ window.addEventListener("storage", e => {
   if (tutorialSession && e.key === STORE_KEY) tutorialSession.reloadPending = true;
 });
 init();
+

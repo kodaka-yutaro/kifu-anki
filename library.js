@@ -282,6 +282,7 @@ async function restore(file) {
 function mergeTree(dst, src) {
   if (!dst.children.length) { if (src.handicap) dst.handicap = src.handicap; else delete dst.handicap; }
   if (src.comment && !(dst.comment || "").includes(src.comment)) dst.comment = dst.comment ? dst.comment + "\n" + src.comment : src.comment;
+  if (src.edgeComment && !(dst.edgeComment || "").includes(src.edgeComment)) dst.edgeComment = dst.edgeComment ? dst.edgeComment + "\n" + src.edgeComment : src.edgeComment;
   for (const c of src.children) {
     const same = dst.children.find(d => Shogi.moveEq(d.move, c.move));
     if (same) mergeTree(same, c); else dst.children.push(c);
