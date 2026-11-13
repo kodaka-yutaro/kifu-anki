@@ -269,6 +269,7 @@ function harness({ data = new Map(), blocked = false, controller = false, search
   }
   runScript("problems-store.js");
   runScript("default-files.js");
+  runScript("branch-features.js");
   runScript("app.js");
   if (controller) runScript("tutorial.js");
   const startupWrites = writes.splice(0);
@@ -310,6 +311,64 @@ function harness({ data = new Map(), blocked = false, controller = false, search
 
 const tests = [];
 function test(name, check) { tests.push({ name, check }); }
+
+test("candidate buttons navigate registered branches without duplicates and disappear in drills and leaves", () => {
+  const data = new Map([[BOOKS, JSON.stringify(storedBooks())]]);
+  const h = harness({ data });
+  assert.equal(h.get("btnBranchComment").disabled, true);
+  assert.equal(h.get("candidateSection").hidden, false);
+  for (let i = 0; i < 5; i++) h.get("candidateMoves").children[0].click();
+  assert.equal(h.get("candidateMoves").children.length, 2);
+  const before = JSON.stringify(h.app.state().root);
+  h.get("candidateMoves").children[1].click();
+  assert.equal(h.app.state().depth, 6);
+  assert.equal(h.get("candidateSection").hidden, true);
+  assert.equal(JSON.stringify(h.app.state().root), before);
+  h.modeButton("both").click();
+  assert.equal(h.get("candidateSection").hidden, true);
+});
+test("edge comments target the arriving move, preserve position comments and survive storage and KIF", () => {
+  const data = new Map([[BOOKS, JSON.stringify(storedBooks())]]);
+  const h = harness({ data });
+  for (let i = 0; i < 5; i++) h.get("candidateMoves").children[0].click();
+  h.get("candidateMoves").children[1].click();
+  const node = h.app.state().node, oldComment = node.comment;
+  h.get("btnBranchComment").click();
+  const text = '三間飛車に振る。\n長い解説でも折り返して表示する。<script>&"';
+  h.get("branchCommentText").value = text;
+  h.get("btnSaveBranchComment").click();
+  assert.equal(node.edgeComment, text);
+  assert.equal(node.comment, oldComment);
+  assert.equal(h.app.state().path[5].edgeComment, undefined);
+  assert.ok(h.get("tree").innerHTML.includes('class="edge-comment"'));
+  assert.ok(!h.get("tree").innerHTML.includes("<script>"));
+  assert.ok(h.get("tree").innerHTML.includes("&lt;script&gt;"));
+  assert.deepEqual(Shogi.parseKIF(Shogi.toKIF("test", h.app.state().root)), json(h.app.state().root));
+  const restored = harness({ data });
+  assert.ok(JSON.stringify(restored.app.state().root).includes("edgeComment"));
+  h.get("btnBranchComment").click();
+  h.get("branchCommentText").value = "キャンセルされる";
+  h.get("btnCancelBranchComment").click();
+  assert.equal(node.edgeComment, text);
+  h.modeButton("both").click();
+  assert.ok(!h.get("tree").innerHTML.includes('class="edge-comment"'));
+  h.modeButton("edit").click();
+  for (let i = 0; i < 5; i++) h.get("candidateMoves").children[0].click();
+  h.get("candidateMoves").children[1].click();
+  h.get("btnBranchComment").click();
+  h.get("branchCommentText").value = "";
+  h.get("btnSaveBranchComment").click();
+  assert.equal(node.edgeComment, undefined);
+});
+test("KIF merge retains a branch comment on an existing move", () => {
+  const h = harness();
+  const copy = json(h.app.state().root);
+  copy.children[0].edgeComment = "合流するコメント";
+  const kif = Shogi.toKIF("合流", copy);
+  vm.runInContext('mergeTree(book.root, S.parseKIF(' + JSON.stringify(kif) + '))', h.context);
+  assert.equal(h.app.state().root.children[0].edgeComment, "合流するコメント");
+});
+
 const mainLine = ["▲７六歩", "△３四歩", "▲２六歩", "△４四歩", "▲４八銀", "△４二飛"];
 const branchLine = [...mainLine.slice(0, -1), "△３二飛"];
 

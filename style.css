@@ -263,3 +263,16 @@ body.in-tutorial a[aria-disabled="true"] { opacity:.45; cursor:not-allowed; }
 @media (prefers-reduced-motion:reduce) {
   .cell.hint, .hand-piece.hint { animation:none; }
 }
+
+
+/* 登録済みの候補手と分岐コメント */
+.candidate-section { padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--panel); }
+.candidate-section h3 { margin:0 0 8px; font-size:.9rem; }
+.candidate-section small { margin-left:6px; color:var(--muted); font-weight:normal; }
+.candidate-moves { display:flex; flex-wrap:wrap; gap:8px; }
+.candidate-move { min-height:42px; text-align:left; }
+.tree .edge-comment rect { fill:#fff8e7; stroke:#e1c795; }
+.tree .edge-comment text { font-size:12px; fill:#614318; }
+.branch-comment-dialog { width:460px; }
+.branch-comment-dialog .row { margin-top:12px; }
+.preview-banner { max-width:928px; margin:10px auto; padding:10px 14px; border:1px solid #d4b577; border-radius:8px; background:#fff7df; font-size:.85rem; line-height:1.6; }
