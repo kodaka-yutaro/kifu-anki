@@ -369,6 +369,60 @@ test("KIF merge retains a branch comment on an existing move", () => {
   assert.equal(h.app.state().root.children[0].edgeComment, "合流するコメント");
 });
 
+
+test("touch previews appear immediately, long presses stay on the parent and short taps navigate", () => {
+  const record = storedBooks();
+  record.books[0].root.children[0].edgeComment = "角道を開ける\nスマホで読む";
+  const h = harness({ data: new Map([[BOOKS, JSON.stringify(record)]]) });
+  const button = h.get("candidateMoves").children[0], panel = h.get("candidateCommentPreview");
+  const touch = { pointerType:"touch", pointerId:1, clientX:10, clientY:10, timeStamp:100 };
+  button.dispatch("pointerdown", touch);
+  assert.equal(panel.hidden, false);
+  assert.equal(panel.textContent, "角道を開ける\nスマホで読む");
+  assert.equal(h.app.state().depth, 0);
+  button.dispatch("focus"); // Synthetic touch focus must not leave the preview open.
+  button.dispatch("pointerup", {...touch, timeStamp:800});
+  assert.equal(panel.hidden, true);
+  button.click();
+  assert.equal(h.app.state().depth, 0, "reading a long press must not play the move");
+  button.dispatch("pointerdown", {...touch, timeStamp:900});
+  button.dispatch("pointerup", {...touch, timeStamp:1000});
+  button.click();
+  assert.equal(h.app.state().depth, 1, "ordinary tap still plays the registered move");
+  assert.equal(panel.hidden, true);
+});
+test("scrolling and canceled touches hide previews without navigating, mouse and keyboard work too", () => {
+  const record = storedBooks();
+  record.books[0].root.children[0].edgeComment = "<b>安全なテキスト</b>";
+  const h = harness({ data: new Map([[BOOKS, JSON.stringify(record)]]) });
+  const button = h.get("candidateMoves").children[0], panel = h.get("candidateCommentPreview");
+  const touch = { pointerType:"touch", pointerId:1, clientX:10, clientY:10, timeStamp:100 };
+  button.dispatch("pointerdown", touch);
+  button.dispatch("pointermove", {...touch, clientY:40, timeStamp:150});
+  assert.equal(panel.hidden, true);
+  button.dispatch("pointerup", {...touch, timeStamp:200});
+  button.click();
+  assert.equal(h.app.state().depth, 0);
+  button.dispatch("pointerdown", touch);
+  button.dispatch("pointercancel", touch);
+  button.click();
+  assert.equal(panel.hidden, true);
+  assert.equal(h.app.state().depth, 0);
+  button.dispatch("pointerenter", {pointerType:"mouse"});
+  assert.equal(panel.hidden, false);
+  assert.equal(panel.textContent, "<b>安全なテキスト</b>");
+  button.dispatch("pointerleave", {pointerType:"mouse"});
+  assert.equal(panel.hidden, true);
+  button.dispatch("focus");
+  assert.equal(panel.hidden, false);
+  button.dispatch("keydown", {key:"Escape"});
+  assert.equal(panel.hidden, true);
+  button.dispatch("keydown", {key:"Enter"});
+  button.click();
+  assert.equal(h.app.state().depth, 1);
+  assert.equal(panel.hidden, true);
+});
+
 const mainLine = ["▲７六歩", "△３四歩", "▲２六歩", "△４四歩", "▲４八銀", "△４二飛"];
 const branchLine = [...mainLine.slice(0, -1), "△３二飛"];
 

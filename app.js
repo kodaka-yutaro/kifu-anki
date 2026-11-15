@@ -159,6 +159,10 @@ function renderCandidates(pos) {
   const section = $("candidateSection"), list = $("candidateMoves");
   if (!section || !list) return;
   section.hidden = mode !== "edit" || !cur().children.length || !!tutorialSession;
+  const preview = $("candidateCommentPreview");
+  if (preview) { preview.hidden = true; preview.textContent = ""; }
+  const hint = $("candidateCommentHint");
+  if (hint) hint.hidden = !cur().children.some(child => !!child.edgeComment);
   list.innerHTML = "";
   if (!section.hidden) {
     const parent = cur();
@@ -168,8 +172,10 @@ function renderCandidates(pos) {
       button.className = "candidate-move";
       const origin = child.move.from ? "（" + child.move.from.join("") + "）" : "";
       button.textContent = S.label(pos, child.move, prevToOf(parent)) + origin;
-      button.title = (i === 0 ? "本線" : "分岐") + (child.edgeComment ? "：" + child.edgeComment : "");
+      button.title = child.edgeComment ? "" : (i === 0 ? "本線" : "分岐");
+      const previewGesture = KifuBranches.attachPreview(button, child.edgeComment, preview);
       button.onclick = () => {
+        if (previewGesture.consumeClick()) return;
         if (mode !== "edit" || tutorialSession || cur() !== parent) return;
         play(child.move, position());
       };

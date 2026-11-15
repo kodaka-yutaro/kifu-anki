@@ -276,3 +276,7 @@ body.in-tutorial a[aria-disabled="true"] { opacity:.45; cursor:not-allowed; }
 .branch-comment-dialog { width:460px; }
 .branch-comment-dialog .row { margin-top:12px; }
 .preview-banner { max-width:928px; margin:10px auto; padding:10px 14px; border:1px solid #d4b577; border-radius:8px; background:#fff7df; font-size:.85rem; line-height:1.6; }
+
+.candidate-comment-hint { margin:8px 0 0; color:var(--muted); font-size:.78rem; }
+.candidate-comment-preview { margin-top:10px; padding:10px 12px; border:1px solid #e1c795; border-radius:8px; background:#fff8e7; color:#614318; white-space:pre-wrap; overflow-wrap:anywhere; font-size:.9rem; line-height:1.6; }
+.candidate-move.has-branch-comment { border-bottom:3px solid #d1aa62; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; }

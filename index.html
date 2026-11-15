@@ -16,7 +16,7 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"棋譜暗記道場","alternateName":"棋譜暗記サイト","url":"https://kifu.kdking-tools.com/","applicationCategory":"GameApplication","operatingSystem":"Web","inLanguage":"ja","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"description":"将棋の棋譜や定跡をツリーで管理し、盤上で指して暗記できる無料の棋譜暗記サイト。KIFファイルの読み込み・書き出しに対応。"}
 </script>
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=12">
 <link rel="stylesheet" href="fonts/pieces-fonts.css?v=1">
 <link rel="stylesheet" href="pieces.css?v=3">
 <link rel="stylesheet" href="problem-editor.css?v=1">
@@ -117,6 +117,8 @@
       <section id="candidateSection" class="candidate-section" hidden aria-labelledby="candidateTitle">
         <h3 id="candidateTitle">候補手 <small>入力済み</small></h3>
         <div id="candidateMoves" class="candidate-moves"></div>
+        <p id="candidateCommentHint" class="candidate-comment-hint" hidden>タップで進む・長押しで分岐コメントを見る</p>
+        <div id="candidateCommentPreview" class="candidate-comment-preview" role="tooltip" hidden></div>
       </section>
       <button id="btnBranchComment" type="button" disabled>分岐にコメント</button>
       <div class="buttons" id="drillButtons" hidden>
@@ -307,11 +309,11 @@
   </div>
 </section>
 
-<script src="shogi.js?v=5"></script>
+<script src="shogi.js?v=6"></script>
 <script src="problems-store.js?v=1"></script>
 <script src="default-files.js?v=3"></script>
-<script src="branch-features.js?v=1"></script>
-<script src="app.js?v=12"></script>
+<script src="branch-features.js?v=2"></script>
+<script src="app.js?v=13"></script>
 <script src="problem-editor.js?v=2"></script>
 <script src="tutorial.js?v=3"></script>
 <script type="module" src="sync.js?v=5"></script>
