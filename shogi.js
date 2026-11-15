@@ -247,6 +247,13 @@ const Shogi = (() => {
     lines.forEach((raw, i) => {
       const s = raw.replace(/^[\s　]+/, "").replace(/\s+$/, "");
       if (!s || s.startsWith("#") || s.startsWith("&")) return;
+
+      if (s.startsWith("*[分岐コメント] ")) {
+        try {
+          const value = JSON.parse(s.slice("*[分岐コメント] ".length));
+          if (last.move && typeof value === "string") { last.edgeComment = value; return; }
+        } catch (e) { /* 外部の通常コメントならそのまま保持する */ }
+      }
       if (s.startsWith("*")) { addComment(last, s.replace(/^\*/, "")); return; }
       let m = s.match(/^手合割[：:](.*)$/);
       if (m) return;
@@ -288,6 +295,7 @@ const Shogi = (() => {
     out.push("手合割：" + handicap, "先手：", "後手：", "手数----指手---------消費時間--");
     const comment = node => {
       if (node.comment) node.comment.split("\n").forEach(l => out.push("*" + l));
+      if (node.move && node.edgeComment) out.push("*[分岐コメント] " + JSON.stringify(node.edgeComment));
     };
     const moveLine = (ply, node, pos, prevTo) => {
       const m = node.move;
@@ -325,3 +333,4 @@ const Shogi = (() => {
   };
 })();
 if (typeof module !== "undefined") module.exports = Shogi;
+

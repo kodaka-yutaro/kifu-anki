@@ -269,6 +269,7 @@ function harness({ data = new Map(), blocked = false, controller = false, search
   }
   runScript("problems-store.js");
   runScript("default-files.js");
+  runScript("branch-features.js");
   runScript("app.js");
   if (controller) runScript("tutorial.js");
   const startupWrites = writes.splice(0);
@@ -310,6 +311,118 @@ function harness({ data = new Map(), blocked = false, controller = false, search
 
 const tests = [];
 function test(name, check) { tests.push({ name, check }); }
+
+test("candidate buttons navigate registered branches without duplicates and disappear in drills and leaves", () => {
+  const data = new Map([[BOOKS, JSON.stringify(storedBooks())]]);
+  const h = harness({ data });
+  assert.equal(h.get("btnBranchComment").disabled, true);
+  assert.equal(h.get("candidateSection").hidden, false);
+  for (let i = 0; i < 5; i++) h.get("candidateMoves").children[0].click();
+  assert.equal(h.get("candidateMoves").children.length, 2);
+  const before = JSON.stringify(h.app.state().root);
+  h.get("candidateMoves").children[1].click();
+  assert.equal(h.app.state().depth, 6);
+  assert.equal(h.get("candidateSection").hidden, true);
+  assert.equal(JSON.stringify(h.app.state().root), before);
+  h.modeButton("both").click();
+  assert.equal(h.get("candidateSection").hidden, true);
+});
+test("edge comments target the arriving move, preserve position comments and survive storage and KIF", () => {
+  const data = new Map([[BOOKS, JSON.stringify(storedBooks())]]);
+  const h = harness({ data });
+  for (let i = 0; i < 5; i++) h.get("candidateMoves").children[0].click();
+  h.get("candidateMoves").children[1].click();
+  const node = h.app.state().node, oldComment = node.comment;
+  h.get("btnBranchComment").click();
+  const text = '三間飛車に振る。\n長い解説でも折り返して表示する。<script>&"';
+  h.get("branchCommentText").value = text;
+  h.get("btnSaveBranchComment").click();
+  assert.equal(node.edgeComment, text);
+  assert.equal(node.comment, oldComment);
+  assert.equal(h.app.state().path[5].edgeComment, undefined);
+  assert.ok(h.get("tree").innerHTML.includes('class="edge-comment"'));
+  assert.ok(!h.get("tree").innerHTML.includes("<script>"));
+  assert.ok(h.get("tree").innerHTML.includes("&lt;script&gt;"));
+  assert.deepEqual(Shogi.parseKIF(Shogi.toKIF("test", h.app.state().root)), json(h.app.state().root));
+  const restored = harness({ data });
+  assert.ok(JSON.stringify(restored.app.state().root).includes("edgeComment"));
+  h.get("btnBranchComment").click();
+  h.get("branchCommentText").value = "キャンセルされる";
+  h.get("btnCancelBranchComment").click();
+  assert.equal(node.edgeComment, text);
+  h.modeButton("both").click();
+  assert.ok(!h.get("tree").innerHTML.includes('class="edge-comment"'));
+  h.modeButton("edit").click();
+  for (let i = 0; i < 5; i++) h.get("candidateMoves").children[0].click();
+  h.get("candidateMoves").children[1].click();
+  h.get("btnBranchComment").click();
+  h.get("branchCommentText").value = "";
+  h.get("btnSaveBranchComment").click();
+  assert.equal(node.edgeComment, undefined);
+});
+test("KIF merge retains a branch comment on an existing move", () => {
+  const h = harness();
+  const copy = json(h.app.state().root);
+  copy.children[0].edgeComment = "合流するコメント";
+  const kif = Shogi.toKIF("合流", copy);
+  vm.runInContext('mergeTree(book.root, S.parseKIF(' + JSON.stringify(kif) + '))', h.context);
+  assert.equal(h.app.state().root.children[0].edgeComment, "合流するコメント");
+});
+
+
+test("touch previews appear immediately, long presses stay on the parent and short taps navigate", () => {
+  const record = storedBooks();
+  record.books[0].root.children[0].edgeComment = "角道を開ける\nスマホで読む";
+  const h = harness({ data: new Map([[BOOKS, JSON.stringify(record)]]) });
+  const button = h.get("candidateMoves").children[0], panel = h.get("candidateCommentPreview");
+  const touch = { pointerType:"touch", pointerId:1, clientX:10, clientY:10, timeStamp:100 };
+  button.dispatch("pointerdown", touch);
+  assert.equal(panel.hidden, false);
+  assert.equal(panel.textContent, "角道を開ける\nスマホで読む");
+  assert.equal(h.app.state().depth, 0);
+  button.dispatch("focus"); // Synthetic touch focus must not leave the preview open.
+  button.dispatch("pointerup", {...touch, timeStamp:800});
+  assert.equal(panel.hidden, true);
+  button.click();
+  assert.equal(h.app.state().depth, 0, "reading a long press must not play the move");
+  button.dispatch("pointerdown", {...touch, timeStamp:900});
+  button.dispatch("pointerup", {...touch, timeStamp:1000});
+  button.click();
+  assert.equal(h.app.state().depth, 1, "ordinary tap still plays the registered move");
+  assert.equal(panel.hidden, true);
+});
+test("scrolling and canceled touches hide previews without navigating, mouse and keyboard work too", () => {
+  const record = storedBooks();
+  record.books[0].root.children[0].edgeComment = "<b>安全なテキスト</b>";
+  const h = harness({ data: new Map([[BOOKS, JSON.stringify(record)]]) });
+  const button = h.get("candidateMoves").children[0], panel = h.get("candidateCommentPreview");
+  const touch = { pointerType:"touch", pointerId:1, clientX:10, clientY:10, timeStamp:100 };
+  button.dispatch("pointerdown", touch);
+  button.dispatch("pointermove", {...touch, clientY:40, timeStamp:150});
+  assert.equal(panel.hidden, true);
+  button.dispatch("pointerup", {...touch, timeStamp:200});
+  button.click();
+  assert.equal(h.app.state().depth, 0);
+  button.dispatch("pointerdown", touch);
+  button.dispatch("pointercancel", touch);
+  button.click();
+  assert.equal(panel.hidden, true);
+  assert.equal(h.app.state().depth, 0);
+  button.dispatch("pointerenter", {pointerType:"mouse"});
+  assert.equal(panel.hidden, false);
+  assert.equal(panel.textContent, "<b>安全なテキスト</b>");
+  button.dispatch("pointerleave", {pointerType:"mouse"});
+  assert.equal(panel.hidden, true);
+  button.dispatch("focus");
+  assert.equal(panel.hidden, false);
+  button.dispatch("keydown", {key:"Escape"});
+  assert.equal(panel.hidden, true);
+  button.dispatch("keydown", {key:"Enter"});
+  button.click();
+  assert.equal(h.app.state().depth, 1);
+  assert.equal(panel.hidden, true);
+});
+
 const mainLine = ["▲７六歩", "△３四歩", "▲２六歩", "△４四歩", "▲４八銀", "△４二飛"];
 const branchLine = [...mainLine.slice(0, -1), "△３二飛"];
 
