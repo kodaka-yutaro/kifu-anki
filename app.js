@@ -276,6 +276,102 @@ function renderHands(pos) {
 }
 
 // 定跡ツリー：横に手数、縦に変化。最初の子は親と同じ行に置く。
+// ---- 棋譜ツリーの拡大・縮小、表示枠の拡張、右ドラッグでのスクロール ----
+const TREE_VIEW_KEY = "kifu-anki-tree-view-v1";
+const TREE_ZOOMS = [0.5, 0.67, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
+let treeZoom = 1;
+function loadTreeView() {
+  try {
+    const v = JSON.parse(localStorage.getItem(TREE_VIEW_KEY) || "{}");
+    if (TREE_ZOOMS.includes(v.zoom)) treeZoom = v.zoom;
+    $("treeArea").classList.toggle("expanded", !!v.expanded);
+  } catch (e) { /* 既定のまま */ }
+  updateTreeTools();
+}
+function saveTreeView() {
+  try { localStorage.setItem(TREE_VIEW_KEY, JSON.stringify({ zoom: treeZoom, expanded: $("treeArea").classList.contains("expanded") })); }
+  catch (e) { /* 保存できなくても表示は続ける */ }
+}
+function updateTreeTools() {
+  $("btnTreeZoomReset").textContent = Math.round(treeZoom * 100) + "%";
+  $("btnTreeZoomOut").disabled = treeZoom <= TREE_ZOOMS[0];
+  $("btnTreeZoomIn").disabled = treeZoom >= TREE_ZOOMS[TREE_ZOOMS.length - 1];
+  const expanded = $("treeArea").classList.contains("expanded");
+  $("btnTreeExpand").setAttribute("aria-pressed", String(expanded));
+  $("btnTreeExpand").textContent = expanded ? "⤡ 戻す" : "⤢ 広く";
+}
+// anchor: ツリー枠内の基準点（ここが拡大後も同じ場所に残る）。省略時は枠の中央
+function setTreeZoom(z, anchor) {
+  z = Math.min(TREE_ZOOMS[TREE_ZOOMS.length - 1], Math.max(TREE_ZOOMS[0], z));
+  if (z === treeZoom) return;
+  const tree = $("tree"), svg = tree.querySelector("svg");
+  const ax = anchor ? anchor.x : tree.clientWidth / 2, ay = anchor ? anchor.y : tree.clientHeight / 2;
+  const ratio = z / treeZoom;
+  const left = (tree.scrollLeft + ax) * ratio - ax, top = (tree.scrollTop + ay) * ratio - ay;
+  treeZoom = z;
+  if (svg) {
+    const vb = svg.viewBox.baseVal;
+    svg.setAttribute("width", vb.width * z);
+    svg.setAttribute("height", vb.height * z);
+  }
+  tree.scrollLeft = left; tree.scrollTop = top;
+  updateTreeTools(); saveTreeView();
+}
+function stepTreeZoom(dir, anchor) {
+  const i = TREE_ZOOMS.findIndex(z => z >= treeZoom - 1e-9);
+  const next = dir > 0 ? TREE_ZOOMS[Math.min(TREE_ZOOMS.length - 1, TREE_ZOOMS[i] > treeZoom + 1e-9 ? i : i + 1)] : TREE_ZOOMS[Math.max(0, i - 1)];
+  setTreeZoom(next, anchor);
+}
+function toggleTreeExpand() {
+  const area = $("treeArea");
+  area.classList.toggle("expanded");
+  updateTreeTools(); saveTreeView();
+  if (area.classList.contains("expanded")) area.scrollIntoView({ block: "start", behavior: "smooth" });
+  renderTree();
+}
+function initTreeView() {
+  const tree = $("tree");
+  loadTreeView();
+  $("btnTreeZoomIn").onclick = () => stepTreeZoom(1);
+  $("btnTreeZoomOut").onclick = () => stepTreeZoom(-1);
+  $("btnTreeZoomReset").onclick = () => setTreeZoom(1);
+  $("btnTreeExpand").onclick = toggleTreeExpand;
+  // Ctrl+ホイール（トラックパッドのピンチ）で拡大・縮小
+  tree.addEventListener("wheel", e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const r = tree.getBoundingClientRect();
+    const anchor = { x: e.clientX - r.left - tree.clientLeft, y: e.clientY - r.top - tree.clientTop };
+    setTreeZoom(treeZoom * Math.exp(-e.deltaY * 0.0025), anchor);
+  }, { passive: false });
+  // 右ボタン（またはホイールボタン）を押したままドラッグしてスクロール
+  let pan = null;
+  tree.addEventListener("pointerdown", e => {
+    if (e.pointerType !== "mouse" || (e.button !== 2 && e.button !== 1)) return;
+    e.preventDefault();
+    pan = { id: e.pointerId, x: e.clientX, y: e.clientY, left: tree.scrollLeft, top: tree.scrollTop };
+    tree.setPointerCapture(e.pointerId);
+    tree.classList.add("panning");
+  });
+  tree.addEventListener("pointermove", e => {
+    if (!pan || e.pointerId !== pan.id) return;
+    tree.scrollLeft = pan.left - (e.clientX - pan.x);
+    tree.scrollTop = pan.top - (e.clientY - pan.y);
+  });
+  const endPan = e => {
+    if (!pan || e.pointerId !== pan.id) return;
+    pan = null;
+    tree.classList.remove("panning");
+  };
+  tree.addEventListener("pointerup", endPan);
+  tree.addEventListener("pointercancel", endPan);
+  tree.addEventListener("lostpointercapture", endPan);
+  // ツリー上では右クリックメニューを出さない（ドラッグ操作に使うため）
+  tree.addEventListener("contextmenu", e => e.preventDefault());
+  // ホイールボタンの自動スクロールを止める
+  tree.addEventListener("mousedown", e => { if (e.button === 1) e.preventDefault(); });
+}
+
 function renderTree() {
   const W = 90, H = 36, BW = 80, BH = 22, PAD = 8;
   parentOf = new Map();
@@ -307,7 +403,7 @@ function renderTree() {
   for (let r = 1; r <= rows; r++) ys[r] = ys[r - 1] + rowHeights[r - 1];
   const width = xs[maxDepth] + BW + PAD, height = ys[rows] + rowHeights[rows] + PAD;
   const x = d => xs[d], y = r => ys[r];
-  let svg = `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+  let svg = `<svg width="${width * treeZoom}" height="${height * treeZoom}" viewBox="0 0 ${width} ${height}">`;
   for (const it of items) if (it.edge) {
     const [d1, r1] = it.from, [d2, r2] = it.to;
     const x1 = x(d1) + BW, y1 = y(r1) + BH / 2, x2 = x(d2), y2 = y(r2) + BH / 2, mx = x2 - (W - BW) / 2;
@@ -360,9 +456,9 @@ function renderTree() {
   const curEl = tree.querySelector("g.current");
   if (curEl) {
     const it = items.find(i => !i.edge && i.node === cur());
-    const cx = x(it.depth), cy = y(it.row);
-    if (cx < tree.scrollLeft || cx + BW > tree.scrollLeft + tree.clientWidth) tree.scrollLeft = cx - tree.clientWidth / 2;
-    if (cy < tree.scrollTop || cy + BH > tree.scrollTop + tree.clientHeight) tree.scrollTop = cy - tree.clientHeight / 2;
+    const z = treeZoom, cx = x(it.depth) * z, cy = y(it.row) * z;
+    if (cx < tree.scrollLeft || cx + BW * z > tree.scrollLeft + tree.clientWidth) tree.scrollLeft = cx - tree.clientWidth / 2;
+    if (cy < tree.scrollTop || cy + BH * z > tree.scrollTop + tree.clientHeight) tree.scrollTop = cy - tree.clientHeight / 2;
   }
 }
 
@@ -752,11 +848,56 @@ function init() {
     tutorialAction("comment");
   };
   $("btnHelp").onclick = () => $("helpDialog").showModal();
+  initTreeView();
+  // 同じ手数の別の分岐へ（↑↓）
+  const switchBranch = dir => {
+    if (mode !== "edit" || tutorialSession || path.length < 2) return;
+    const parent = path[path.length - 2], i = parent.children.indexOf(cur());
+    const sib = parent.children[i + dir];
+    if (sib) nav([...path.slice(0, -1), sib], "branch");
+  };
+  const editKeysOk = () => mode === "edit" && !tutorialSession;
+  // ダイアログ内：Ctrl+Enter（⌘+Enter）で分岐コメントを保存
+  $("branchCommentText").addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); saveBranchComment(); }
+  });
+  // コメント欄：Esc で盤の操作に戻る（入力内容はそのまま保存される）
+  $("comment").addEventListener("keydown", e => {
+    if (e.key === "Escape" || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) { e.preventDefault(); e.target.blur(); }
+  });
   document.addEventListener("keydown", e => {
-    if (["TEXTAREA", "INPUT", "SELECT", "BUTTON"].includes(e.target.tagName) || document.querySelector("dialog[open]")) return;
-    if (e.key === "ArrowLeft") $("btnPrev").click();
-    else if (e.key === "ArrowRight") $("btnNext").click();
-    else if (e.key === "Enter" && !$("btnContinue").hidden && mode !== "edit") $("btnContinue").click();
+    if (e.defaultPrevented || e.isComposing || e.altKey) return;
+    if (["TEXTAREA", "INPUT", "SELECT"].includes(e.target.tagName) || e.target.isContentEditable || document.querySelector("dialog[open]")) return;
+    // ボタンにフォーカスがあるとき、Enter/Space はそのボタンを押す操作として残す
+    if (e.target.tagName === "BUTTON" && (e.key === "Enter" || e.key === " ")) return;
+    const mod = e.ctrlKey || e.metaKey;
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    let done = true;
+    if (mod) {
+      // Ctrl/⌘ との組み合わせはブラウザの操作（コピー・ページの拡大など）に任せる
+      done = false;
+    } else if (key === "ArrowLeft") $("btnPrev").click();
+    else if (key === "ArrowRight") $("btnNext").click();
+    else if (key === "ArrowUp" && editKeysOk()) switchBranch(-1);
+    else if (key === "ArrowDown" && editKeysOk()) switchBranch(1);
+    else if (key === "Home") $("btnFirst").click();
+    else if (key === "End") $("btnLast").click();
+    else if (key === "Enter" && !$("btnContinue").hidden && mode !== "edit") $("btnContinue").click();
+    else if (key === "a" && mode !== "edit" && !$("btnAnswer").hidden) $("btnAnswer").click();
+    else if (key === "c" && mode === "edit") { const c = $("comment"); c.focus(); c.setSelectionRange(c.value.length, c.value.length); }
+    else if (key === "c" && !$("commentCover").hidden) $("commentCover").click();
+    else if (key === "b" && editKeysOk()) openBranchComment();
+    else if ((key === "Delete" || key === "Backspace") && editKeysOk() && path.length > 1) {
+      if (!cur().children.length && !confirm("この手を削除します。よろしいですか？")) return;
+      $("btnCut").click();
+    }
+    else if (key === "+" || key === "=") stepTreeZoom(1);
+    else if (key === "-") stepTreeZoom(-1);
+    else if (key === "0") setTreeZoom(1);
+    else if (key === "t") toggleTreeExpand();
+    else if (key === "?") $("btnHelp").click();
+    else done = false;
+    if (done) e.preventDefault();
   });
   setMode("edit");
   if (initialFileError) setMsg(initialFileError, "ng");
