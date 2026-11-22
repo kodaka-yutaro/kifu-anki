@@ -16,7 +16,7 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"棋譜暗記道場","alternateName":"棋譜暗記サイト","url":"https://kifu.kdking-tools.com/","applicationCategory":"GameApplication","operatingSystem":"Web","inLanguage":"ja","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"},"description":"将棋の棋譜や定跡をツリーで管理し、盤上で指して暗記できる無料の棋譜暗記サイト。KIFファイルの読み込み・書き出しに対応。"}
 </script>
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 <link rel="stylesheet" href="fonts/pieces-fonts.css?v=1">
 <link rel="stylesheet" href="pieces.css?v=3">
 <link rel="stylesheet" href="problem-editor.css?v=1">
@@ -134,7 +134,13 @@
     </section>
   </div>
 
-  <section class="tree-area">
+  <section class="tree-area" id="treeArea">
+    <div class="tree-tools" aria-label="棋譜ツリーの表示">
+      <button id="btnTreeZoomOut" type="button" class="tree-tool" title="ツリーを縮小（−）" aria-label="ツリーを縮小">－</button>
+      <button id="btnTreeZoomReset" type="button" class="tree-tool tree-zoom-value" title="ツリーの倍率を100%に戻す（0）">100%</button>
+      <button id="btnTreeZoomIn" type="button" class="tree-tool" title="ツリーを拡大（＋）" aria-label="ツリーを拡大">＋</button>
+      <button id="btnTreeExpand" type="button" class="tree-tool" title="ツリーの表示枠を広げる（T）" aria-pressed="false">⤢ 広く</button>
+    </div>
     <div id="tree" class="tree"></div>
   </section>
 </main>
@@ -197,6 +203,20 @@
     <li>解説文には現在の局面のコメントが入り、自由に書き換えられます。</li>
     <li>保存先の問題集を選んで保存します。作った問題は「ファイル」から開いて解けます。</li>
   </ul>
+  <h3>キー操作（パソコン）</h3>
+  <table class="keys">
+    <tr><th>← →</th><td>1手戻る・1手進む</td></tr>
+    <tr><th>↑ ↓</th><td>同じ手数の別の分岐へ切り替える</td></tr>
+    <tr><th>Home End</th><td>最初へ・最後へ</td></tr>
+    <tr><th>C</th><td>局面のコメントを書く（Esc で盤の操作に戻る）</td></tr>
+    <tr><th>B</th><td>分岐にコメント（Ctrl+Enter で保存）</td></tr>
+    <tr><th>Delete</th><td>この手以降を削除</td></tr>
+    <tr><th>A ／ Enter</th><td>暗記中：答え ／ 次の変化へ</td></tr>
+    <tr><th>＋ − 0</th><td>ツリーの拡大・縮小・100%に戻す</td></tr>
+    <tr><th>T</th><td>ツリーの表示枠を広げる・戻す</td></tr>
+    <tr><th>?</th><td>この使い方を開く</td></tr>
+  </table>
+  <p class="note">棋譜ツリーは右クリック（またはホイールボタン）を押したままドラッグするとスクロールでき、Ctrl＋ホイールで拡大・縮小できます。</p>
   <p class="note">データはこのブラウザ内に保存されます。右上の 👤 から Google でログインすると、サーバーにも保存され、ほかの端末でも使えます。</p>
   <form method="dialog"><button class="primary">閉じる</button></form>
 </dialog>
@@ -313,7 +333,7 @@
 <script src="problems-store.js?v=1"></script>
 <script src="default-files.js?v=3"></script>
 <script src="branch-features.js?v=2"></script>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 <script src="problem-editor.js?v=2"></script>
 <script src="tutorial.js?v=3"></script>
 <script type="module" src="sync.js?v=5"></script>
