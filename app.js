@@ -327,7 +327,12 @@ function toggleTreeExpand() {
   area.classList.toggle("expanded");
   updateTreeTools(); saveTreeView();
   if (area.classList.contains("expanded")) area.scrollIntoView({ block: "start", behavior: "smooth" });
+  else scrollToBoard();
   renderTree();
+}
+// 盤面（モード切替のすぐ上）が見える位置まで画面を戻す
+function scrollToBoard() {
+  document.querySelector(".modes").scrollIntoView({ block: "start", behavior: "smooth" });
 }
 function initTreeView() {
   const tree = $("tree");
@@ -895,6 +900,7 @@ function init() {
     else if (key === "-") stepTreeZoom(-1);
     else if (key === "0") setTreeZoom(1);
     else if (key === "t") toggleTreeExpand();
+    else if (key === "Escape") { if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); scrollToBoard(); }
     else if (key === "?") $("btnHelp").click();
     else done = false;
     if (done) e.preventDefault();
