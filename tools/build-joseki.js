@@ -64,8 +64,13 @@ const page = ({ title, description, canonical, body, jsonld }) => `<!doctype htm
 <meta property="og:title" content="${esc(title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${canonical}">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://kifu.kdking-tools.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="棋譜暗記道場：定跡・棋譜を盤上で指して覚える将棋の棋譜暗記サイト">
+<meta name="twitter:card" content="summary_large_image">
 ${jsonld ? `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>\n` : ""}<link rel="stylesheet" href="../style.css">
+<script src="../analytics.js" async></script>
 </head>
 <body>
 <header class="site-header"><p class="site-name"><a href="../index.html">棋譜暗記道場</a></p></header>
