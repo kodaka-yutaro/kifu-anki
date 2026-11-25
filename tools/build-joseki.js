@@ -45,9 +45,12 @@ function boardHTML(pos) {
   const hand = side => S.HAND_ORDER.filter(t => pos.hands[side][t])
     .map(t => S.NAME[t] + (pos.hands[side][t] > 1 ? pos.hands[side][t] : "")).join(" ") || "なし";
   return `<figure class="static-board">
+<div class="static-board-body">
 <p class="static-hand">△後手の持駒：${hand(false)}</p>
 <div class="board">${cells}</div>
 <p class="static-hand">▲先手の持駒：${hand(true)}</p>
+</div>
+<button type="button" class="flip-board" aria-pressed="false" title="盤面の上下を入れ替えます">⇅ 盤を反転</button>
 </figure>`;
 }
 
@@ -76,6 +79,7 @@ ${body}
 <footer class="site-footer">
   <a href="../index.html">棋譜暗記ツール</a> ・ <a href="index.html">定跡解説の一覧</a> ・ <a href="../oboekata.html">棋譜の覚え方</a> ・ <a href="../about.html">運営者情報・お問い合わせ</a> ・ <a href="../privacy.html">プライバシーポリシー</a>
 </footer>
+<script src="../board-flip.js?v=1"></script>
 </body>
 </html>
 `;

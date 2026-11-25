@@ -213,8 +213,11 @@ function saveBranchComment() {
   setMsg(saved ? (value ? "分岐コメントを保存しました。" : "分岐コメントを削除しました。") : "保存できませんでした。書出で棋譜を保存してください。", saved ? "ok" : "ng");
 }
 
+// 下側に後手を置くか。暗記の△後手は元から反転し、反転ボタンでさらに入れ替わる。
+const viewFlipped = () => (mode === "gote") !== !!(window.BoardFlip && window.BoardFlip.get());
+
 function renderBoard(pos) {
-  const flip = mode === "gote";
+  const flip = viewFlipped();
   const el = $("board");
   const focused = document.activeElement;
   const focusSquare = focused && focused.parentElement === el
@@ -251,7 +254,7 @@ function renderBoard(pos) {
 }
 
 function renderHands(pos) {
-  const flip = mode === "gote";
+  const flip = viewFlipped();
   const draw = (el, side) => {
     el.innerHTML = `<span class="hand-label">${side ? "▲先手" : "△後手"}</span>`;
     const hand = pos.hands[side];
@@ -819,6 +822,7 @@ function init() {
     selectBook(books[0]);
   };
   document.querySelectorAll(".modes button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  if (window.BoardFlip) window.BoardFlip.onChange(() => render());
   const nav = (to, via) => {
     if (mode !== "edit") return;
     path = to; sel = null; render(); setMsg("");

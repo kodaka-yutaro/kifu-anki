@@ -167,6 +167,15 @@ html[data-board="kaya"] .board { background:linear-gradient(135deg,#ebc882,#e2b9
 .static-board .board { aspect-ratio:9/9.8; }
 .static-board .cell { cursor:default; font-size:clamp(13px,4.2vw,20px); }
 .static-hand { margin:4px 0; font-size:.85rem; color:var(--muted); }
+/* 盤面の反転：ボタンは盤の下に小さく置く。静的な図は盤ごと180度回し、持駒の上下も入れ替える。 */
+.flip-board { align-self:flex-end; padding:3px 10px; font-size:.8rem; }
+.flip-board[aria-pressed="true"] { background:var(--hl); border-color:var(--accent); }
+.static-board .flip-board { display:block; margin:4px 0 0 auto; }
+.static-board-body { display:flex; flex-direction:column; }
+.static-board.flipped .static-board-body { flex-direction:column-reverse; }
+.static-board.flipped .board { transform:rotate(180deg); }
+.static-board.flipped .cell span { transform:rotate(180deg); }
+.static-board.flipped .cell.rev span { transform:none; }
 .article-list { list-style:none; padding:0; }
 .article-list li { margin:10px 0; }
 .article-list a { display:block; padding:12px 14px; background:#fff; border:1px solid var(--border); border-radius:10px; text-decoration:none; color:var(--text); }

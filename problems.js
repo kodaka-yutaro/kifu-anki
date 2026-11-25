@@ -138,7 +138,7 @@ function renderList() {
 function renderBoard() {
   const p = currentProblem(), pos = shownPosition;
   if (!p || !pos) return;
-  const flip = !p.position.turn;
+  const flip = !p.position.turn !== !!(window.BoardFlip && window.BoardFlip.get());
   const board = $("problemBoard");
   const focused = document.activeElement;
   const focusSquare = focused && focused.parentElement === board ? [focused.dataset.file, focused.dataset.rank] : null;
@@ -352,5 +352,6 @@ window.addEventListener("storage", e => {
   if (e.key === P.KEY || e.key === null) reloadCollection();
 });
 window.addEventListener("kifu-problems-changed", reloadCollection);
+if (window.BoardFlip) window.BoardFlip.onChange(() => renderBoard());
 reloadCollection();
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
